@@ -75,5 +75,8 @@
   "save": "Save",
   "fetchError": "Fetch Error",
   "payoutHistory": "Payout History",
-  "paid": "Paid"
+  "paid": "Paid",
+  "pendingProviders": "Pending Providers",
+  "pendingDrivers": "Pending Drivers",
+  "confirm": "Confirm"
 }

@@ -13,6 +13,15 @@ final class UserInfoLoadInitiate extends UserInfoEvent {
   List<Object?> get props => [id, userType];
 }
 
+final class UserAdminConfirmation extends UserInfoEvent {
+  final String id;
+  final String userType;
+  const UserAdminConfirmation({required this.id, required this.userType});
+  
+  @override
+  List<Object?> get props => [id, userType];
+}
+
 final class UserStatusUpdate extends UserInfoEvent {
   final String id;
   final String status;

@@ -33,6 +33,9 @@ class UsersServices {
   final String _fetchUsersUrl =
       'http://128.199.42.59/api/Api.php?apicall=FetchUsers';
 
+  final String _fetchPendingUsersUrl =
+      'http://128.199.42.59/api/Api.php?apicall=FetchPendingUsers';
+
   final String _fetchUserInfoUrl =
       'http://128.199.42.59/api/Api.php?apicall=FetchUserData';
 
@@ -47,6 +50,9 @@ class UsersServices {
 
   final String _updateUserStatusUrl =
       'http://128.199.42.59/api/Api.php?apicall=UpdateUserStatus';
+
+  final String _updateAdminConfirmationUrl =
+      'http://128.199.42.59/api/Api.php?apicall=UpdateAdminConfirmation';
 
   final String _deleteUserUrl =
       'http://128.199.42.59/api/Api.php?apicall=DeleteUser';
@@ -63,6 +69,25 @@ class UsersServices {
     if (userProfileResponse.error == false) {
       List<UserProfile> users = userProfileResponse.userProfiles!;
       return users;
+    } else {
+      return null;
+    }
+  }
+
+  Future<List<UserProfile>?> fetchPendingUsers(String flag) async {
+    final response = await http.post(
+      Uri.parse(_fetchPendingUsersUrl),
+      body: {'FLAG': flag},
+    );
+
+    final UserProfileResponse userProfileResponse =
+        UserProfileResponse.fromJson(jsonDecode(response.body));
+
+    if (userProfileResponse.error == false) {
+      List<UserProfile> users = userProfileResponse.userProfiles!;
+      return users;
+    } else if (userProfileResponse.message == "User not found") {
+      return [];
     } else {
       return null;
     }
@@ -143,6 +168,23 @@ class UsersServices {
     final response = await http.post(
       Uri.parse(_updateUserStatusUrl),
       body: {'Id': id, 'Status': status},
+    );
+
+    final ApiResponse apiResponse = ApiResponse.fromJson(
+      jsonDecode(response.body),
+    );
+
+    if (apiResponse.error == false) {
+      return apiResponse.message;
+    } else {
+      return null;
+    }
+  }
+
+  Future<String?> updateAdminConfirmation(String id) async {
+    final response = await http.post(
+      Uri.parse(_updateAdminConfirmationUrl),
+      body: {'Id': id},
     );
 
     final ApiResponse apiResponse = ApiResponse.fromJson(

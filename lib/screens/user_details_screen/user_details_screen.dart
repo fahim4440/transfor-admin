@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:transfor_admin_dashboard/blocs/user_info/user_info_bloc.dart';
+import 'package:transfor_admin_dashboard/global_widgets/add_button.dart';
 import 'package:transfor_admin_dashboard/screens/user_details_screen/widgets/circle_image.dart';
 import 'package:transfor_admin_dashboard/global_widgets/textField.dart';
 import 'package:transfor_admin_dashboard/utilities/dimensions.dart';
@@ -130,39 +131,47 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Switch(
-                      value: state.userInfo.status == '0',
-                      onChanged: (value) {
-                        context.read<UserInfoBloc>().add(
-                          UserStatusUpdate(
-                            id: widget.id.toString(),
-                            status: state.userInfo.status == '0' ? '1' : '0',
-                            userType: widget.userType,
-                          ),
-                        );
-                      },
-                    ),
+                    state.userInfo.adminConfirmation == '0'
+                        ? Switch(
+                          value: state.userInfo.status == '0',
+                          onChanged: (value) {
+                            context.read<UserInfoBloc>().add(
+                              UserStatusUpdate(
+                                id: widget.id.toString(),
+                                status:
+                                    state.userInfo.status == '0' ? '1' : '0',
+                                userType: widget.userType,
+                              ),
+                            );
+                          },
+                        )
+                        : SizedBox.shrink(),
                   ],
                 ),
                 const SizedBox(height: 20),
                 state.userInfo.profile != null
-                    ? state.userInfo.profile != '' ? Center(
-                      child: circleImage(imageString: state.userInfo.profile!),
-                    )
-                    : Center(
-                      child: CircleAvatar(
-                        radius: 50,
-                        child: Icon(Icons.person_pin, size: 50,),
-                      ),
-                    ) : 
-                const SizedBox(height: 20),
+                    ? state.userInfo.profile != ''
+                        ? Center(
+                          child: circleImage(
+                            imageString: state.userInfo.profile!,
+                          ),
+                        )
+                        : Center(
+                          child: CircleAvatar(
+                            radius: 50,
+                            child: Icon(Icons.person_pin, size: 50),
+                          ),
+                        )
+                    : const SizedBox(height: 20),
                 const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
                       child: textFieldDisabled(
                         labelText: AppStrings.name.translate(context),
-                        textController: TextEditingController(text: state.userInfo.name),
+                        textController: TextEditingController(
+                          text: state.userInfo.name,
+                        ),
                         isReadOnly: true,
                       ),
                     ),
@@ -170,7 +179,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                     Expanded(
                       child: textFieldDisabled(
                         labelText: AppStrings.mobile.translate(context),
-                        textController: TextEditingController(text: '${state.userInfo.ccode}${state.userInfo.mobile}'),
+                        textController: TextEditingController(
+                          text:
+                              '${state.userInfo.ccode}${state.userInfo.mobile}',
+                        ),
                         isReadOnly: true,
                       ),
                     ),
@@ -178,7 +190,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                     Expanded(
                       child: textFieldDisabled(
                         labelText: AppStrings.email.translate(context),
-                        textController: TextEditingController(text: state.userInfo.email),
+                        textController: TextEditingController(
+                          text: state.userInfo.email,
+                        ),
                         isReadOnly: true,
                       ),
                     ),
@@ -211,6 +225,22 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                       cardImage: state.bankInfo!.crImage,
                       accountNumber: state.bankInfo!.ibanNo,
                     ),
+                Center(
+                  child:
+                      state.userInfo.adminConfirmation == '1'
+                          ? addButton(
+                            AppStrings.confirm.translate(context),
+                            () {
+                              context.read<UserInfoBloc>().add(
+                                UserAdminConfirmation(
+                                  id: widget.id.toString(),
+                                  userType: widget.userType,
+                                ),
+                              );
+                            },
+                          )
+                          : SizedBox.shrink(),
+                ),
               ],
             ),
           );
@@ -368,7 +398,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
             ),
           ],
         ),
-        SizedBox(height: 20,),
+        SizedBox(height: 20),
         Text(
           AppStrings.vehicleType.translate(context),
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

@@ -12,9 +12,12 @@ class UsersBloc extends Bloc<UsersEvent, UsersState> {
     on<UsersLoadingInitiate>((event, emit) async {
       emit(UsersLoading());
       try {
-        final List<UserProfile>? users = await _usersServices.fetchUsers(
-          event.userType,
-        );
+        final List<UserProfile>? users;
+        if (event.isPending) {
+          users = await _usersServices.fetchPendingUsers(event.userType);
+        } else {
+          users = await _usersServices.fetchUsers(event.userType);
+        }
         if (users != null) {
           emit(UsersLoaded(users: users, filteredUsers: users));
         } else {

@@ -42,6 +42,7 @@ class PayoutRequestServices {
 
   Future<List<PayoutRequest>?> fetchUserPayoutRequest() async {
     final response = await http.post(Uri.parse(_userPayoutRequestUrl));
+    print("Response body: ${response.body}");
 
     final PayoutRequestResponse payoutRequestResponse =
         PayoutRequestResponse.fromJson(jsonDecode(response.body));

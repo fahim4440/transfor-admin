@@ -10,7 +10,8 @@ import 'package:transfor_admin_dashboard/utilities/dimensions.dart';
 
 class UsersScreen extends StatefulWidget {
   final String userType;
-  const UsersScreen({super.key, required this.userType});
+  final bool isPending;
+  const UsersScreen({super.key, required this.userType, this.isPending = false});
 
   @override
   State<UsersScreen> createState() => _UsersScreenState();
@@ -32,7 +33,7 @@ class _UsersScreenState extends State<UsersScreen> {
   void initState() {
     super.initState();
     context.read<UsersBloc>().add(
-      UsersLoadingInitiate(userType: widget.userType),
+      UsersLoadingInitiate(userType: widget.userType, isPending: widget.isPending),
     );
   }
 

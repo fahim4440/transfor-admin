@@ -99,102 +99,104 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         },
         builder: (context, state) {
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(Assets.appLogo, height: 80),
-                      const SizedBox(height: AppDimensions.padding),
-                      Text(
-                        AppStrings.appTitle.translate(context),
-                        style: AppTextStyles.heading,
-                      ),
-                      Text(
-                        AppStrings.loginTitle.translate(context),
-                        style: AppTextStyles.body,
-                      ),
-                      const SizedBox(height: AppDimensions.biggerSpacing),
-                      TextFormField(
-                        controller: _emailController,
-                        validator: _validateEmail,
-                        forceErrorText: _emailError,
-                        decoration: InputDecoration(
-                          labelText: AppStrings.email.translate(context),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: AppColors.primary,
-                              width: 2,
+          return SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Card(
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(Assets.appLogo, height: 80),
+                        const SizedBox(height: AppDimensions.padding),
+                        Text(
+                          AppStrings.appTitle.translate(context),
+                          style: AppTextStyles.heading,
+                        ),
+                        Text(
+                          AppStrings.loginTitle.translate(context),
+                          style: AppTextStyles.body,
+                        ),
+                        const SizedBox(height: AppDimensions.biggerSpacing),
+                        TextFormField(
+                          controller: _emailController,
+                          validator: _validateEmail,
+                          forceErrorText: _emailError,
+                          decoration: InputDecoration(
+                            labelText: AppStrings.email.translate(context),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: AppDimensions.normalSpacing),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        forceErrorText: _passwordError,
-                        validator: _validatePassword,
-                        decoration: InputDecoration(
-                          labelText: AppStrings.password.translate(context),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: AppColors.primary,
-                              width: 2,
+                        const SizedBox(height: AppDimensions.normalSpacing),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          forceErrorText: _passwordError,
+                          validator: _validatePassword,
+                          decoration: InputDecoration(
+                            labelText: AppStrings.password.translate(context),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: AppDimensions.biggerSpacing),
-                      ElevatedButton(
-                        onPressed:
-                            state is AuthLoading
-                                ? null
-                                : () {
-                                  setState(() {
-                                    _emailError = _validateEmail(
-                                      _emailController.text,
-                                    );
-                                    _passwordError = _validatePassword(
-                                      _passwordController.text,
-                                    );
-                                  });
-                                  if (_emailError == null &&
-                                      _passwordError == null) {
-                                    context.read<AuthBloc>().add(
-                                      LoginRequested(
-                                        email: _emailController.text.trim(),
-                                        password: _passwordController.text,
-                                      ),
-                                    );
-                                  }
-                                },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                        const SizedBox(height: AppDimensions.biggerSpacing),
+                        ElevatedButton(
+                          onPressed:
+                              state is AuthLoading
+                                  ? null
+                                  : () {
+                                    setState(() {
+                                      _emailError = _validateEmail(
+                                        _emailController.text,
+                                      );
+                                      _passwordError = _validatePassword(
+                                        _passwordController.text,
+                                      );
+                                    });
+                                    if (_emailError == null &&
+                                        _passwordError == null) {
+                                      context.read<AuthBloc>().add(
+                                        LoginRequested(
+                                          email: _emailController.text.trim(),
+                                          password: _passwordController.text,
+                                        ),
+                                      );
+                                    }
+                                  },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            minimumSize: const Size(double.infinity, 48),
                           ),
-                          minimumSize: const Size(double.infinity, 48),
+                          child:
+                              state is AuthLoading
+                                  ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                  : Text(
+                                    AppStrings.login.translate(context),
+                                    style: AppTextStyles.buttonTextStyle,
+                                  ),
                         ),
-                        child:
-                            state is AuthLoading
-                                ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                                : Text(
-                                  AppStrings.login.translate(context),
-                                  style: AppTextStyles.buttonTextStyle,
-                                ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

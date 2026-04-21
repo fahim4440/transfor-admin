@@ -33,6 +33,7 @@ class UserInfo {
   final String? profile;
   final String type;
   final String status;
+  final String adminConfirmation;
   final String emailVerify;
   final DateTime createdAt;
 
@@ -45,6 +46,7 @@ class UserInfo {
     this.profile,
     required this.type,
     required this.status,
+    required this.adminConfirmation,
     required this.emailVerify,
     required this.createdAt,
   });
@@ -60,6 +62,7 @@ class UserInfo {
       profile: json['profile'] as String?,
       type: json['type'] as String,
       status: json['status'] as String,
+      adminConfirmation: json['admin_confirmation'] as String,
       emailVerify: json['email_verify'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -76,6 +79,7 @@ class UserInfo {
       'profile': profile,
       'type': type,
       'status': status,
+      'admin_confirmation': adminConfirmation,
       'email_verify': emailVerify,
       'created_at': createdAt.toIso8601String(),
     };

@@ -78,6 +78,9 @@ enum AppStrings {
   fetchError,
   payoutHistory,
   paid,
+  pendingProviders,
+  pendingDrivers,
+  confirm,
 }
 
 extension TKeysExtention on AppStrings {

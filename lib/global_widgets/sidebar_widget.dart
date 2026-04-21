@@ -127,6 +127,19 @@ class SidebarWidget extends StatelessWidget {
               routeName: '/driver',
               route: () => context.go('/driver'),
             ),
+
+            listTile(
+              icon: Icons.pending,
+              name: AppStrings.pendingProviders.translate(context),
+              routeName: '/pendingProviders',
+              route: () => context.go('/pendingProviders'),
+            ),
+            listTile(
+              icon: Icons.pending,
+              name: AppStrings.pendingDrivers.translate(context),
+              routeName: '/pendingDrivers',
+              route: () => context.go('/pendingDrivers'),
+            ),
             listTile(
               icon: Icons.shopping_bag,
               name: AppStrings.currentOrders.translate(context),

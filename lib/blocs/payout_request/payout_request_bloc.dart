@@ -48,7 +48,10 @@ class PayoutRequestBloc extends Bloc<PayoutRequestEvent, PayoutRequestState> {
     on<PayToUser>((event, emit) async {
       emit(PayoutRequestLoading());
       try {
-        String? updateMessage = await _payoutRequestServices.payToUser(userId: event.userId, orderType: event.orderType);
+        String? updateMessage = await _payoutRequestServices.payToUser(
+          userId: event.userId,
+          orderType: event.orderType,
+        );
         List<PayoutRequest>? payoutRequests;
         if (event.userType == 'User') {
           payoutRequests =
@@ -60,16 +63,16 @@ class PayoutRequestBloc extends Bloc<PayoutRequestEvent, PayoutRequestState> {
           payoutRequests =
               await _payoutRequestServices.fetchDriverPayoutRequest();
         }
-        if (payoutRequests != null && updateMessage != null) {
+        if (updateMessage != null) {
           emit(
             PayoutRequestLoaded(
-              payoutRequests: payoutRequests,
-              filteredPayoutRequests: payoutRequests,
+              payoutRequests: payoutRequests ?? [],
+              filteredPayoutRequests: payoutRequests ?? [],
               userType: event.userType,
             ),
           );
         } else {
-          emit(PayoutRequestFailure(message: ''));
+          emit(PayoutRequestFailure(message: 'Failed to process payout request.'));
         }
       } catch (e) {
         emit(PayoutRequestFailure(message: '"Something went wrong: $e"'));
@@ -79,7 +82,10 @@ class PayoutRequestBloc extends Bloc<PayoutRequestEvent, PayoutRequestState> {
     on<PayToProvider>((event, emit) async {
       emit(PayoutRequestLoading());
       try {
-        String? updateMessage = await _payoutRequestServices.payToProvider(orderId: event.orderId, orderType: event.orderType);
+        String? updateMessage = await _payoutRequestServices.payToProvider(
+          orderId: event.orderId,
+          orderType: event.orderType,
+        );
         List<PayoutRequest>? payoutRequests;
         if (event.userType == 'User') {
           payoutRequests =
@@ -91,16 +97,16 @@ class PayoutRequestBloc extends Bloc<PayoutRequestEvent, PayoutRequestState> {
           payoutRequests =
               await _payoutRequestServices.fetchDriverPayoutRequest();
         }
-        if (payoutRequests != null && updateMessage != null) {
+        if (updateMessage != null) {
           emit(
             PayoutRequestLoaded(
-              payoutRequests: payoutRequests,
-              filteredPayoutRequests: payoutRequests,
+              payoutRequests: payoutRequests ?? [],
+              filteredPayoutRequests: payoutRequests ?? [],
               userType: event.userType,
             ),
           );
         } else {
-          emit(PayoutRequestFailure(message: ''));
+          emit(PayoutRequestFailure(message: 'Failed to process payout request.'));
         }
       } catch (e) {
         emit(PayoutRequestFailure(message: '"Something went wrong: $e"'));
@@ -110,7 +116,9 @@ class PayoutRequestBloc extends Bloc<PayoutRequestEvent, PayoutRequestState> {
     on<PayToDriver>((event, emit) async {
       emit(PayoutRequestLoading());
       try {
-        String? updateMessage = await _payoutRequestServices.payToDriver(driverId: event.driverId);
+        String? updateMessage = await _payoutRequestServices.payToDriver(
+          driverId: event.driverId,
+        );
         List<PayoutRequest>? payoutRequests;
         if (event.userType == 'User') {
           payoutRequests =
@@ -122,16 +130,16 @@ class PayoutRequestBloc extends Bloc<PayoutRequestEvent, PayoutRequestState> {
           payoutRequests =
               await _payoutRequestServices.fetchDriverPayoutRequest();
         }
-        if (payoutRequests != null && updateMessage != null) {
+        if (updateMessage != null) {
           emit(
             PayoutRequestLoaded(
-              payoutRequests: payoutRequests,
-              filteredPayoutRequests: payoutRequests,
+              payoutRequests: payoutRequests ?? [],
+              filteredPayoutRequests: payoutRequests ?? [],
               userType: event.userType,
             ),
           );
         } else {
-          emit(PayoutRequestFailure(message: ''));
+          emit(PayoutRequestFailure(message: 'Failed to process payout request.'));
         }
       } catch (e) {
         emit(PayoutRequestFailure(message: '"Something went wrong: $e"'));

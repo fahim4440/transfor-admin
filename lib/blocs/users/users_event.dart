@@ -6,9 +6,10 @@ sealed class UsersEvent extends Equatable {
 
 final class UsersLoadingInitiate extends UsersEvent {
   final String userType;
-  const UsersLoadingInitiate({required this.userType});
+  final bool isPending;
+  const UsersLoadingInitiate({required this.userType, required this.isPending});
   @override
-  List<Object?> get props => [userType];
+  List<Object?> get props => [userType, isPending];
 }
 
 final class SearchUsers extends UsersEvent {

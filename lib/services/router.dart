@@ -63,6 +63,14 @@ final appRouter = GoRouter(
           builder: (context, state) => UsersScreen(userType: 'Driver'),
         ),
         GoRoute(
+          path: '/pendingProviders',
+          builder: (context, state) => UsersScreen(userType: 'Service Provider', isPending: true),
+        ),
+        GoRoute(
+          path: '/pendingDrivers',
+          builder: (context, state) => UsersScreen(userType: 'Driver', isPending: true),
+        ),
+        GoRoute(
           path: '/currentOrders',
           builder:
               (context, state) =>
