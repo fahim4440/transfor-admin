@@ -181,7 +181,7 @@ class _OrdersTableState extends State<OrdersTable> {
                           )
                           : WidgetStateColor.resolveWith(
                             (states) =>
-                                AppColors.drawerBgColor!.withOpacity(0.1),
+                                AppColors.drawerBgColor.withValues(alpha: 0.1),
                           ),
                   cells: [
                     DataCell(Text(order.id.toString())),

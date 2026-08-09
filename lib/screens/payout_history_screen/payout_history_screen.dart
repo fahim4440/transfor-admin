@@ -352,7 +352,7 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                                           (states) => AppColors.background,
                                         )
                                         : WidgetStateColor.resolveWith(
-                                          (states) => AppColors.drawerBgColor!
+                                          (states) => AppColors.drawerBgColor
                                               .withValues(alpha: 0.1),
                                         ),
                                 cells: [
