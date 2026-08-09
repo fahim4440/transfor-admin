@@ -118,7 +118,7 @@ class _UsersTableState extends State<UsersTable> {
                           )
                           : WidgetStateColor.resolveWith(
                             (states) =>
-                                AppColors.drawerBgColor!.withOpacity(0.1),
+                                AppColors.drawerBgColor.withValues(alpha: 0.1),
                           ),
                   cells: [
                     DataCell(Text(user.id.toString())),
