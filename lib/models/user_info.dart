@@ -36,6 +36,7 @@ class UserInfo {
   final String adminConfirmation;
   final String emailVerify;
   final DateTime createdAt;
+  final String? serviceProviderId;
 
   UserInfo({
     required this.id,
@@ -49,7 +50,10 @@ class UserInfo {
     required this.adminConfirmation,
     required this.emailVerify,
     required this.createdAt,
+    this.serviceProviderId,
   });
+
+  bool get isCompanyDriver => serviceProviderId != null && serviceProviderId!.isNotEmpty;
 
   // Factory method to create UserModel from JSON
   factory UserInfo.fromJson(Map<String, dynamic> json) {
@@ -65,6 +69,7 @@ class UserInfo {
       adminConfirmation: json['admin_confirmation'] as String,
       emailVerify: json['email_verify'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      serviceProviderId: json['service_provider_id'] as String?,
     );
   }
 
@@ -82,6 +87,7 @@ class UserInfo {
       'admin_confirmation': adminConfirmation,
       'email_verify': emailVerify,
       'created_at': createdAt.toIso8601String(),
+      'service_provider_id': serviceProviderId,
     };
   }
 }

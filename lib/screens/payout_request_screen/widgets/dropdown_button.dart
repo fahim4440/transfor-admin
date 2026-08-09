@@ -15,12 +15,12 @@ Container dropdownButton({
       value: selectedCategory,
       hint: const Text('User Type'),
       items:
-          <String>[
-            'User',
-            'Service Provider',
-            'Driver',
-          ].map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(value: value, child: Text(value));
+          <MapEntry<String, String>>[
+            const MapEntry('User', 'Customer'),
+            const MapEntry('Service Provider', 'Service Provider'),
+            const MapEntry('Driver', 'Driver'),
+          ].map<DropdownMenuItem<String>>((entry) {
+            return DropdownMenuItem<String>(value: entry.key, child: Text(entry.value));
           }).toList(),
       onChanged: (String? newValue) {
         if (newValue != null) {

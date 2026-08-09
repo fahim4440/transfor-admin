@@ -14,18 +14,20 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       try {
         List<Order>? orders = [];
         List<Order>? totalOrders;
-        if (event.ordersCompleteType == 'currentOrders') {
+        if (event.ordersCompleteType == 'orderPlaced' ||
+            event.ordersCompleteType == 'inProgress') {
           totalOrders = await _ordersServices.fetchCurrentOrders('TRANS');
           if (totalOrders != null) {
+            final wantedStatus =
+                event.ordersCompleteType == 'orderPlaced' ? 'Order Placed' : 'Processing';
             for (Order order in totalOrders) {
-              if (order.status == 'Processing' ||
-                  order.status == 'Order Placed') {
+              if (order.status == wantedStatus) {
                 orders.add(order);
               }
             }
           }
         }
-        if (event.ordersCompleteType == 'completedOrders') {
+        if (event.ordersCompleteType == 'delivered') {
           totalOrders = await _ordersServices.fetchCompletedCancelledOrders(
             'TRANS',
             '0',
@@ -34,7 +36,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
             orders = totalOrders;
           }
         }
-        if (event.ordersCompleteType == 'cancelledOrders') {
+        if (event.ordersCompleteType == 'cancelled') {
           totalOrders = await _ordersServices.fetchCompletedCancelledOrders(
             'TRANS',
             '-1',

@@ -39,10 +39,16 @@ dependencies:
   http: ^1.4.0
   shared_preferences: ^2.5.3
   awesome_dialog: ^3.2.1
-  intl: ^0.19.0
+  intl: ^0.20.2
   equatable: ^2.0.7
+  file_picker: ^10.3.10
   flutter_localizations:
     sdk: flutter
+  fl_chart: ^0.70.0
+  pdf: ^3.11.1
+  path_provider: ^2.1.4
+  url_launcher: ^6.3.0
+  arabic_reshaper: ^0.0.1
 
 dev_dependencies:
   flutter_test:
@@ -69,9 +75,10 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/languages/
-    - assets/svgs/
+    # - assets/svgs/
     - assets/logos/
-    - assets/pngs/
+    - assets/fonts/
+    # - assets/pngs/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -85,6 +92,10 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
+  fonts:
+    - family: SaudiRiyal
+      fonts:
+        - asset: assets/fonts/saudi_riyal.ttf
   # fonts:
   #   - family: Schyler
   #     fonts:

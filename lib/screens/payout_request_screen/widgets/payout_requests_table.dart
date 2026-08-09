@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:transfor_admin_dashboard/blocs/payout_request/payout_request_bloc.dart';
 
 import '../../../models/payout_request.dart';
 import '../../../utilities/app_strings.dart';
 import '../../../utilities/colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../users_screen/widgets/button.dart';
+import 'payout_request_detail_dialog.dart';
 
 class PayoutRequestsTable extends StatefulWidget {
   final List<PayoutRequest> payoutRequests;
@@ -141,14 +140,12 @@ class _PayoutRequestsTableState extends State<PayoutRequestsTable> {
                       Text(payoutRequest.updatedAt.toIso8601String().split('T').first),
                     ),
                     DataCell(
-                      actionButton("Pay", Colors.teal, () {
-                        if (widget.userType == 'User') {
-                          context.read<PayoutRequestBloc>().add(PayToUser(userId: payoutRequest.userId, userType: widget.userType, orderType: payoutRequest.type!));
-                        } else if (widget.userType == 'Service Provider') {
-                          context.read<PayoutRequestBloc>().add(PayToProvider(orderId: payoutRequest.id, userType: widget.userType, orderType: payoutRequest.type!));
-                        } else if (widget.userType == 'Driver') {
-                          context.read<PayoutRequestBloc>().add(PayToDriver(driverId: payoutRequest.userId, userType: widget.userType));
-                        }
+                      actionButton("View", Colors.teal, () {
+                        showPayoutRequestDetailDialog(
+                          context,
+                          payoutRequest: payoutRequest,
+                          userType: widget.userType,
+                        );
                       }),
                     ),
                   ],

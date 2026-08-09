@@ -83,7 +83,7 @@ class PayoutRequestBloc extends Bloc<PayoutRequestEvent, PayoutRequestState> {
       emit(PayoutRequestLoading());
       try {
         String? updateMessage = await _payoutRequestServices.payToProvider(
-          orderId: event.orderId,
+          providerId: event.providerId,
           orderType: event.orderType,
         );
         List<PayoutRequest>? payoutRequests;

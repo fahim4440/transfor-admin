@@ -1,7 +1,13 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:transfor_admin_dashboard/blocs/payout_history/payout_history_bloc.dart';
+import 'package:transfor_admin_dashboard/models/order.dart';
+import 'package:transfor_admin_dashboard/models/payout_history.dart';
+import 'package:transfor_admin_dashboard/screens/orders_screen/widgets/order_detail_dialog.dart';
+import 'package:transfor_admin_dashboard/services/pdf/payout_history_pdf_generator.dart';
+import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
 import 'package:transfor_admin_dashboard/utilities/dimensions.dart';
 
 import '../../global_widgets/seachbox.dart';
@@ -17,9 +23,37 @@ class PayoutHistoryScreen extends StatefulWidget {
 }
 
 class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
+  static const _pageSize = 10;
+
   int _currentSortColumn = 0;
   bool _isSortAsc = true;
   int rowIndex = 0;
+
+  DateTime? filterFrom;
+  DateTime? filterTo;
+  int currentPage = 0;
+  bool isGeneratingPdf = false;
+
+  Future<void> _printPdf(List<PayoutHistory> payoutHistories) async {
+    setState(() => isGeneratingPdf = true);
+    try {
+      final bytes = await generatePayoutHistoryPdf(
+        payoutHistories: payoutHistories,
+        filterFrom: filterFrom,
+        filterTo: filterTo,
+      );
+      final fileName = 'payout_history_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      await openPdf(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isGeneratingPdf = false);
+    }
+  }
 
   void _showError(String message) {
     AwesomeDialog(
@@ -38,6 +72,62 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
     context.read<PayoutHistoryBloc>().add(PayoutHistoryLoadingInitiate());
   }
 
+  Future<void> _pickFilterDate({required bool isFrom}) async {
+    final initial = (isFrom ? filterFrom : filterTo) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isFrom) {
+        filterFrom = picked;
+      } else {
+        filterTo = picked;
+      }
+      currentPage = 0;
+    });
+  }
+
+  void _clearFilter() {
+    setState(() {
+      filterFrom = null;
+      filterTo = null;
+      currentPage = 0;
+    });
+  }
+
+  List<PayoutHistory> _applyDateFilter(List<PayoutHistory> payoutHistories) {
+    if (filterFrom == null || filterTo == null) return payoutHistories;
+    final from = DateTime(filterFrom!.year, filterFrom!.month, filterFrom!.day);
+    final to = DateTime(filterTo!.year, filterTo!.month, filterTo!.day, 23, 59, 59);
+    return payoutHistories.where((payoutHistory) {
+      return !payoutHistory.updatedAt.isBefore(from) && !payoutHistory.updatedAt.isAfter(to);
+    }).toList();
+  }
+
+  void _viewOrder(PayoutHistory payoutHistory) {
+    if (payoutHistory.type == null || payoutHistory.type == 'Top-up') return; // not an order
+    showOrderDetailDialog(
+      context,
+      Order(
+        id: payoutHistory.id,
+        userName: payoutHistory.name,
+        userCode: payoutHistory.ccode,
+        userMobile: payoutHistory.mobile,
+        userEmail: '',
+        orderNumber: payoutHistory.orderNumber,
+        totalAmount: payoutHistory.tAmount.toString(),
+        totalQuantity: 0,
+        status: 'Completed',
+        type: payoutHistory.type!,
+        createdAt: payoutHistory.updatedAt,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PayoutHistoryBloc, PayoutHistoryState>(
@@ -48,14 +138,76 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
       },
       builder: (context, state) {
         if (state is PayoutHistoryLoaded) {
+          final dateFormat = DateFormat('yyyy-MM-dd');
+          final isFilterReady = filterFrom != null && filterTo != null;
+          final isFilterValid = !isFilterReady || !filterFrom!.isAfter(filterTo!);
+          final visiblePayoutHistories =
+              isFilterValid ? _applyDateFilter(state.filteredPayoutHistories) : state.filteredPayoutHistories;
+          final totalPages = (visiblePayoutHistories.length / _pageSize).ceil();
+          final safePage = totalPages == 0 ? 0 : currentPage.clamp(0, totalPages - 1);
+          if (safePage != currentPage) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => currentPage = safePage);
+            });
+          }
+          final pagedPayoutHistories =
+              visiblePayoutHistories.skip(safePage * _pageSize).take(_pageSize).toList();
+
           return Padding(
             padding: const EdgeInsets.all(AppDimensions.padding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                SearchBox(searchType: 'Payout Request'),
-                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: SearchBox(searchType: 'Payout Request')),
+                    IconButton(
+                      tooltip: 'Print PDF',
+                      onPressed: isGeneratingPdf || pagedPayoutHistories.isEmpty
+                          ? null
+                          : () => _printPdf(pagedPayoutHistories),
+                      icon: isGeneratingPdf
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.picture_as_pdf),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => _pickFilterDate(isFrom: true),
+                      child: Text(filterFrom == null ? 'From date' : dateFormat.format(filterFrom!)),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => _pickFilterDate(isFrom: false),
+                      child: Text(filterTo == null ? 'To date' : dateFormat.format(filterTo!)),
+                    ),
+                    if (filterFrom != null || filterTo != null)
+                      TextButton(
+                        onPressed: _clearFilter,
+                        child: Text('Clear'),
+                      ),
+                  ],
+                ),
+                if (isFilterReady && !isFilterValid)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      '"From date" must be before "To date"',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                const SizedBox(height: 16),
                 Expanded(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -82,12 +234,30 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                               setState(() {
                                 _currentSortColumn = columnIndex;
                                 if (_isSortAsc) {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => b.id.compareTo(a.id),
                                   );
                                 } else {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => a.id.compareTo(b.id),
+                                  );
+                                }
+                                _isSortAsc = !_isSortAsc;
+                              });
+                            },
+                          ),
+                          DataColumn(
+                            label: Text(AppStrings.orderNo.translate(context)),
+                            onSort: (columnIndex, _) {
+                              setState(() {
+                                _currentSortColumn = columnIndex;
+                                if (_isSortAsc) {
+                                  pagedPayoutHistories.sort(
+                                    (a, b) => b.orderNumber.compareTo(a.orderNumber),
+                                  );
+                                } else {
+                                  pagedPayoutHistories.sort(
+                                    (a, b) => a.orderNumber.compareTo(b.orderNumber),
                                   );
                                 }
                                 _isSortAsc = !_isSortAsc;
@@ -100,11 +270,11 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                               setState(() {
                                 _currentSortColumn = columnIndex;
                                 if (_isSortAsc) {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => b.name.compareTo(a.name),
                                   );
                                 } else {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => a.name.compareTo(b.name),
                                   );
                                 }
@@ -118,11 +288,11 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                               setState(() {
                                 _currentSortColumn = columnIndex;
                                 if (_isSortAsc) {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => b.mobile.compareTo(a.mobile),
                                   );
                                 } else {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => a.mobile.compareTo(b.mobile),
                                   );
                                 }
@@ -136,11 +306,11 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                               setState(() {
                                 _currentSortColumn = columnIndex;
                                 if (_isSortAsc) {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => b.tAmount.compareTo(a.tAmount),
                                   );
                                 } else {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) => a.tAmount.compareTo(b.tAmount),
                                   );
                                 }
@@ -154,12 +324,12 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                               setState(() {
                                 _currentSortColumn = columnIndex;
                                 if (_isSortAsc) {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) =>
                                         b.updatedAt.compareTo(a.updatedAt),
                                   );
                                 } else {
-                                  state.payoutHistories.sort(
+                                  pagedPayoutHistories.sort(
                                     (a, b) =>
                                         a.updatedAt.compareTo(b.updatedAt),
                                   );
@@ -173,7 +343,7 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                           ),
                         ],
                         rows:
-                            state.filteredPayoutHistories.map((payoutHistory) {
+                            pagedPayoutHistories.map((payoutHistory) {
                               rowIndex = rowIndex + 1;
                               return DataRow(
                                 color:
@@ -190,6 +360,7 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                                   DataCell(
                                     Text('TRANS${payoutHistory.id.toString()}'),
                                   ),
+                                  DataCell(Text(payoutHistory.orderNumber)),
                                   DataCell(Text(payoutHistory.name)),
                                   DataCell(
                                     Text(
@@ -208,7 +379,12 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                                     ),
                                   ),
                                   DataCell(
-                                    Text(AppStrings.paid.translate(context)),
+                                    payoutHistory.type == null || payoutHistory.type == 'Top-up'
+                                        ? Text(AppStrings.paid.translate(context))
+                                        : TextButton(
+                                            onPressed: () => _viewOrder(payoutHistory),
+                                            child: const Text('View'),
+                                          ),
                                   ),
                                 ],
                               );
@@ -217,6 +393,24 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                     ),
                   ),
                 ),
+                if (totalPages > 1)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: safePage > 0 ? () => setState(() => currentPage = safePage - 1) : null,
+                          icon: const Icon(Icons.chevron_left),
+                        ),
+                        Text('Page ${safePage + 1} of $totalPages'),
+                        IconButton(
+                          onPressed: safePage < totalPages - 1 ? () => setState(() => currentPage = safePage + 1) : null,
+                          icon: const Icon(Icons.chevron_right),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           );

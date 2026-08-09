@@ -33,6 +33,8 @@ class UserProfile {
   final String? profile;
   final String type;
   final DateTime createdAt;
+  final String? serviceProviderId;
+  final String? providerType;
 
   UserProfile({
     required this.id,
@@ -43,7 +45,22 @@ class UserProfile {
     required this.profile,
     required this.type,
     required this.createdAt,
+    this.serviceProviderId,
+    this.providerType,
   });
+
+  bool get isCompanyDriver => serviceProviderId != null && serviceProviderId!.isNotEmpty;
+
+  String get providerTypeLabel {
+    switch (providerType?.toLowerCase()) {
+      case 'product':
+        return 'Product Provider';
+      case 'delivery':
+        return 'Delivery Provider';
+      default:
+        return 'Both';
+    }
+  }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
@@ -55,6 +72,8 @@ class UserProfile {
       profile: json['profile'],
       type: json['type'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      serviceProviderId: json['service_provider_id'] as String?,
+      providerType: json['provider_type'] as String?,
     );
   }
 
@@ -68,6 +87,8 @@ class UserProfile {
       'profile': profile,
       'type': type,
       'created_at': createdAt.toIso8601String(),
+      'service_provider_id': serviceProviderId,
+      'provider_type': providerType,
     };
   }
 }

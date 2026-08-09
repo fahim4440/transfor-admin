@@ -9,6 +9,8 @@ import 'package:transfor_admin_dashboard/blocs/payout_history/payout_history_blo
 import 'package:transfor_admin_dashboard/blocs/payout_request/payout_request_bloc.dart';
 import 'package:transfor_admin_dashboard/blocs/setting/setting_bloc.dart';
 import 'package:transfor_admin_dashboard/blocs/sidebar/sidebar_bloc.dart';
+import 'package:transfor_admin_dashboard/blocs/slider_images/slider_images_bloc.dart';
+import 'package:transfor_admin_dashboard/blocs/tile_images/tile_images_bloc.dart';
 import 'package:transfor_admin_dashboard/blocs/user_info/user_info_bloc.dart';
 import 'package:transfor_admin_dashboard/blocs/users/users_bloc.dart';
 
@@ -64,7 +66,13 @@ class AdminApp extends StatelessWidget {
         ),
         BlocProvider<SettingBloc>(
           create: (_) => SettingBloc(),
-        )
+        ),
+        BlocProvider<SliderImagesBloc>(
+          create: (_) => SliderImagesBloc(),
+        ),
+        BlocProvider<TileImagesBloc>(
+          create: (_) => TileImagesBloc(),
+        ),
       ],
       child: BlocBuilder<LocaleBloc, LocaleState>(
         builder: (context, state) {

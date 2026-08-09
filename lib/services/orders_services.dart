@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:transfor_admin_dashboard/models/order.dart';
+import 'package:transfor_admin_dashboard/models/order_detail.dart';
 
 class OrdersServices {
   // final String _fetchCurrentOrdersUrl =
@@ -53,5 +54,29 @@ class OrdersServices {
     } else {
       return null;
     }
+  }
+
+  Future<ProductOrderDetail?> fetchProductOrderDetails(String orderId) async {
+    final response = await http.post(
+      Uri.parse('http://128.199.42.59/api/Api.php?apicall=FetchOrderDetails'),
+      body: {'OID': orderId},
+    );
+
+    final ProductOrderDetailResponse detailResponse =
+        ProductOrderDetailResponse.fromJson(jsonDecode(response.body));
+
+    return detailResponse.error == false ? detailResponse.detail : null;
+  }
+
+  Future<TransportOrderDetail?> fetchTransportOrderDetails(String orderId) async {
+    final response = await http.post(
+      Uri.parse('http://128.199.42.59/api/Api.php?apicall=fetchTransportOrderDetails'),
+      body: {'ID': orderId},
+    );
+
+    final TransportOrderDetailResponse detailResponse =
+        TransportOrderDetailResponse.fromJson(jsonDecode(response.body));
+
+    return detailResponse.error == false ? detailResponse.detail : null;
   }
 }

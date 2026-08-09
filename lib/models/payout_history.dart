@@ -29,6 +29,7 @@ class PayoutHistoryResponse {
 
 class PayoutHistory {
   final String id;
+  final String orderNumber;
   final String userId;
   final String payStatus;
   final double tAmount;
@@ -40,6 +41,7 @@ class PayoutHistory {
 
   PayoutHistory({
     required this.id,
+    required this.orderNumber,
     required this.userId,
     required this.payStatus,
     required this.tAmount,
@@ -53,6 +55,7 @@ class PayoutHistory {
   factory PayoutHistory.fromJson(Map<String, dynamic> json) {
     return PayoutHistory(
       id: json['id'] as String,
+      orderNumber: json['order_number']?.toString() ?? '',
       userId: json['user_id'] as String,
       payStatus: json['pay_status'] as String,
       tAmount: double.parse(json['TAMOUNT'] as String),
@@ -67,6 +70,7 @@ class PayoutHistory {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'order_number': orderNumber,
       'user_id': userId,
       'pay_status': payStatus,
       'TAMOUNT': tAmount.toString(),

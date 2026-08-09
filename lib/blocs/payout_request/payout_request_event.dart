@@ -36,17 +36,17 @@ final class PayToUser extends PayoutRequestEvent {
 }
 
 final class PayToProvider extends PayoutRequestEvent {
-  final String orderId;
+  final String providerId;
   final String userType;
   final String orderType;
   const PayToProvider({
-    required this.orderId,
+    required this.providerId,
     required this.userType,
     required this.orderType,
   });
 
   @override
-  List<Object?> get props => [orderId, userType, orderType];
+  List<Object?> get props => [providerId, userType, orderType];
 }
 
 final class PayToDriver extends PayoutRequestEvent {

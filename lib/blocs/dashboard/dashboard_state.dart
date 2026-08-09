@@ -15,17 +15,32 @@ final class DashboardLoading extends DashboardState {
 }
 
 final class DashboardLoaded extends DashboardState {
-  final AllCount allCount;
-  const DashboardLoaded({required this.allCount});
+  final DashboardSummary? dashboardSummary;
+  final DashboardGrowth? dashboardGrowth;
+  final RevenueStats? revenueStats;
+  final List<RevenuePoint>? revenueData;
+  final List<UserGrowthPoint>? userGrowthData;
+  final List<RecentOrder>? recentOrders;
+  final OrderStats? orderStats;
+
+  const DashboardLoaded({
+    this.dashboardSummary,
+    this.dashboardGrowth,
+    this.revenueStats,
+    this.revenueData,
+    this.userGrowthData,
+    this.recentOrders,
+    this.orderStats,
+  });
 
   @override
-  List<Object?> get props => [allCount];
+  List<Object?> get props => [dashboardSummary, dashboardGrowth, revenueStats, revenueData, userGrowthData, recentOrders, orderStats];
 }
 
 final class DashboardFailure extends DashboardState {
   final String errorMessage;
   const DashboardFailure({required this.errorMessage});
-  
+
   @override
   List<Object?> get props => [errorMessage];
 }

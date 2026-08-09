@@ -9,8 +9,13 @@ import 'package:transfor_admin_dashboard/screens/payout_history_screen/payout_hi
 import 'package:transfor_admin_dashboard/screens/payout_request_screen/payout_request_screen.dart';
 import 'package:transfor_admin_dashboard/screens/profile_screen/profile_screen.dart';
 import 'package:transfor_admin_dashboard/screens/settings_screen/settings_screen.dart';
+import 'package:transfor_admin_dashboard/screens/slider_images_screen/slider_images_screen.dart';
+import 'package:transfor_admin_dashboard/screens/transport_tiles_screen/transport_tiles_screen.dart';
 import 'package:transfor_admin_dashboard/screens/user_details_screen/user_details_screen.dart';
 import 'package:transfor_admin_dashboard/screens/users_screen/users_screen.dart';
+import 'package:transfor_admin_dashboard/screens/add_customer_screen/add_customer_screen.dart';
+import 'package:transfor_admin_dashboard/screens/provider_screen/provider_screen.dart';
+import 'package:transfor_admin_dashboard/screens/driver_screen/driver_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -50,43 +55,28 @@ final appRouter = GoRouter(
           builder: (context, state) => const DashboardScreen(),
         ),
         GoRoute(
+          path: '/customers',
+          builder: (context, state) => UsersScreen(userType: 'Individual'),
+        ),
+        GoRoute(
           path: '/users',
           builder: (context, state) => UsersScreen(userType: 'Individual'),
         ),
         GoRoute(
+          path: '/add-customer',
+          builder: (context, state) => const AddCustomerScreen(),
+        ),
+        GoRoute(
           path: '/provider',
-          builder:
-              (context, state) => UsersScreen(userType: 'Service Provider'),
+          builder: (context, state) => const ProviderScreen(),
         ),
         GoRoute(
           path: '/driver',
-          builder: (context, state) => UsersScreen(userType: 'Driver'),
+          builder: (context, state) => const DriverScreen(),
         ),
         GoRoute(
-          path: '/pendingProviders',
-          builder: (context, state) => UsersScreen(userType: 'Service Provider', isPending: true),
-        ),
-        GoRoute(
-          path: '/pendingDrivers',
-          builder: (context, state) => UsersScreen(userType: 'Driver', isPending: true),
-        ),
-        GoRoute(
-          path: '/currentOrders',
-          builder:
-              (context, state) =>
-                  OrdersScreen(ordersCompletedTyep: 'currentOrders'),
-        ),
-        GoRoute(
-          path: '/completedOrders',
-          builder:
-              (context, state) =>
-                  OrdersScreen(ordersCompletedTyep: 'completedOrders'),
-        ),
-        GoRoute(
-          path: '/cancelledOrders',
-          builder:
-              (context, state) =>
-                  OrdersScreen(ordersCompletedTyep: 'cancelledOrders'),
+          path: '/orders',
+          builder: (context, state) => const OrdersScreen(),
         ),
         GoRoute(
           path: '/payoutRequest',
@@ -99,6 +89,14 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/settings',
           builder: (context, state) => SettingsScreen(),
+        ),
+        GoRoute(
+          path: '/sliderImages',
+          builder: (context, state) => const SliderImagesScreen(),
+        ),
+        GoRoute(
+          path: '/transportTiles',
+          builder: (context, state) => const TransportTilesScreen(),
         ),
         GoRoute(
           path: '/admin-profile',

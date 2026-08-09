@@ -6,6 +6,7 @@ import '../../../utilities/app_strings.dart';
 import '../../../utilities/colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../users_screen/widgets/button.dart';
+import 'order_detail_dialog.dart';
 
 class OrdersTable extends StatefulWidget {
   final List<Order> orders;
@@ -196,7 +197,9 @@ class _OrdersTableState extends State<OrdersTable> {
                       Text(order.createdAt.toIso8601String().split('T').first),
                     ),
                     DataCell(
-                      actionButton("View", Colors.teal, () {}),
+                      actionButton("View", Colors.teal, () {
+                        showOrderDetailDialog(context, order);
+                      }),
                     ),
                   ],
                 );

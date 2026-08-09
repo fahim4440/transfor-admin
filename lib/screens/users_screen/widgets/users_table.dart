@@ -11,7 +11,12 @@ import 'package:transfor_admin_dashboard/utilities/text_styles.dart';
 
 class UsersTable extends StatefulWidget {
   final List<UserProfile> users;
-  const UsersTable({super.key, required this.users});
+  final bool showProviderTypeColumn;
+  const UsersTable({
+    super.key,
+    required this.users,
+    this.showProviderTypeColumn = false,
+  });
 
   @override
   State<UsersTable> createState() => _UsersTableState();
@@ -98,6 +103,8 @@ class _UsersTableState extends State<UsersTable> {
                 });
               },
             ),
+            if (widget.showProviderTypeColumn)
+              DataColumn(label: Text(AppStrings.providerType.translate(context))),
             DataColumn(label: Text(AppStrings.action.translate(context))),
           ],
           rows:
@@ -115,21 +122,32 @@ class _UsersTableState extends State<UsersTable> {
                           ),
                   cells: [
                     DataCell(Text(user.id.toString())),
-                    DataCell(Text(user.name)),
+                    DataCell(
+                      GestureDetector(
+                        onTap: () {
+                          context.go(
+                            '/${user.type.toLowerCase().replaceAll(' ', '-')}/details${user.id}',
+                          );
+                        },
+                        child: Text(
+                          user.name,
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                     DataCell(Text(user.mobile)),
                     DataCell(Text(user.email)),
                     DataCell(
                       Text(user.createdAt.toIso8601String().split('T').first),
                     ),
+                    if (widget.showProviderTypeColumn)
+                      DataCell(Text(user.providerTypeLabel)),
                     DataCell(
                       Row(
                         children: [
-                          actionButton("View", Colors.teal, () {
-                            context.go(
-                              '/${user.type.toLowerCase()}/details${user.id}',
-                            );
-                          }),
-                          const SizedBox(width: 8),
                           actionButton("Delete", Colors.red, () {
                             AwesomeDialog(
                               context: context,

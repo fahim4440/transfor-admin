@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:transfor_admin_dashboard/models/api_response.dart';
 import 'package:transfor_admin_dashboard/models/payout_request.dart';
+import 'package:transfor_admin_dashboard/models/payout_request_item.dart';
 
 class PayoutRequestServices {
   // final String _userPayoutRequestUrl =
@@ -102,11 +103,11 @@ class PayoutRequestServices {
     return apiResponse.message;
   }
 
-  Future<String?> payToProvider({required String orderId, required String orderType}) async {
+  Future<String?> payToProvider({required String providerId, required String orderType}) async {
     final response = await http.post(
       Uri.parse(_payToProviderUrl),
       body: {
-        'order_id': orderId,
+        'provider_id': providerId,
         'type': orderType
       }
     );
@@ -131,5 +132,35 @@ class PayoutRequestServices {
     );
 
     return apiResponse.message;
+  }
+
+  Future<List<PayoutRequestItem>?> fetchDriverPayoutRequestItems({required String driverId}) async {
+    final response = await http.post(
+      Uri.parse('http://128.199.42.59/api/Api.php?apicall=FetchDriverPayoutRequestItems'),
+      body: {'driver_id': driverId},
+    );
+
+    final itemsResponse = PayoutRequestItemsResponse.fromJson(jsonDecode(response.body));
+    return itemsResponse.error == false ? itemsResponse.items : null;
+  }
+
+  Future<List<PayoutRequestItem>?> fetchUserPayoutRequestItems({required String userId, required String orderType}) async {
+    final response = await http.post(
+      Uri.parse('http://128.199.42.59/api/Api.php?apicall=FetchUserPayoutRequestItems'),
+      body: {'user_id': userId, 'type': orderType},
+    );
+
+    final itemsResponse = PayoutRequestItemsResponse.fromJson(jsonDecode(response.body));
+    return itemsResponse.error == false ? itemsResponse.items : null;
+  }
+
+  Future<List<PayoutRequestItem>?> fetchProviderPayoutRequestItems({required String providerId, required String orderType}) async {
+    final response = await http.post(
+      Uri.parse('http://128.199.42.59/api/Api.php?apicall=FetchProviderPayoutRequestItems'),
+      body: {'provider_id': providerId, 'type': orderType},
+    );
+
+    final itemsResponse = PayoutRequestItemsResponse.fromJson(jsonDecode(response.body));
+    return itemsResponse.error == false ? itemsResponse.items : null;
   }
 }

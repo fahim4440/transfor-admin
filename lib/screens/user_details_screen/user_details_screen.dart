@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:transfor_admin_dashboard/blocs/user_info/user_info_bloc.dart';
 import 'package:transfor_admin_dashboard/global_widgets/add_button.dart';
 import 'package:transfor_admin_dashboard/screens/user_details_screen/widgets/circle_image.dart';
 import 'package:transfor_admin_dashboard/global_widgets/textField.dart';
+import 'package:transfor_admin_dashboard/models/customer_order.dart';
+import 'package:transfor_admin_dashboard/models/wallet_transaction.dart';
+import 'package:transfor_admin_dashboard/services/pdf/order_history_pdf_generator.dart';
+import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
+import 'package:transfor_admin_dashboard/services/users_services.dart';
+import 'package:transfor_admin_dashboard/utilities/colors.dart';
 import 'package:transfor_admin_dashboard/utilities/dimensions.dart';
 
 import '../../utilities/app_strings.dart';
+
+typedef CustomerPdfInfo = ({String name, String mobile, String userTypeLabel});
 
 class UserDetailsScreen extends StatefulWidget {
   final int id;
@@ -22,6 +31,120 @@ class UserDetailsScreen extends StatefulWidget {
 }
 
 class _UserDetailsScreenState extends State<UserDetailsScreen> {
+  late UsersServices usersServices;
+  List<CustomerOrder>? completedOrders;
+  List<CustomerOrder>? cancelledOrders;
+  List<WalletTransaction>? transactions;
+  WalletSummary? walletSummary;
+  bool isLoadingOrders = true;
+  bool isLoadingWallet = true;
+  bool isGeneratingCompletedPdf = false;
+  bool isGeneratingCancelledPdf = false;
+
+  DateTime? orderFilterFrom;
+  DateTime? orderFilterTo;
+  int? completedOrdersTotal;
+  int? cancelledOrdersTotal;
+
+  Future<void> loadCustomerData() async {
+    final id = widget.id.toString();
+    final userType = widget.userType;
+
+    try {
+      await _loadResolvedOrders();
+    } catch (e) {
+      if (mounted) setState(() => isLoadingOrders = false);
+    }
+
+    try {
+      final walletData = await usersServices.getProfileWalletSummary(id, userType);
+      final transactionsData = await usersServices.getProfileWalletTransactions(id, userType, limit: 5, offset: 0);
+      if (mounted) {
+        setState(() {
+          walletSummary = walletData;
+          transactions = transactionsData;
+          isLoadingWallet = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => isLoadingWallet = false);
+    }
+  }
+
+  Future<void> _loadResolvedOrders({String? dateFrom, String? dateTo, int limit = 5}) async {
+    final id = widget.id.toString();
+    final userType = widget.userType;
+    final completedResponse = await usersServices.getProfileOrders(
+      id,
+      userType,
+      limit: limit,
+      offset: 0,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+      status: '0',
+    );
+    final cancelledResponse = await usersServices.getProfileOrders(
+      id,
+      userType,
+      limit: limit,
+      offset: 0,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+      status: '-1',
+    );
+    if (mounted) {
+      setState(() {
+        completedOrders = completedResponse?.orders;
+        cancelledOrders = cancelledResponse?.orders;
+        completedOrdersTotal = completedResponse?.totalOrders;
+        cancelledOrdersTotal = cancelledResponse?.totalOrders;
+        isLoadingOrders = false;
+      });
+    }
+  }
+
+  Future<void> pickOrderFilterDate({required bool isFrom}) async {
+    final initial = (isFrom ? orderFilterFrom : orderFilterTo) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isFrom) {
+        orderFilterFrom = picked;
+      } else {
+        orderFilterTo = picked;
+      }
+    });
+  }
+
+  Future<void> applyOrderDateFilter() async {
+    if (orderFilterFrom == null || orderFilterTo == null) return;
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final from = dateFormat.format(orderFilterFrom!);
+    final to = dateFormat.format(orderFilterTo!);
+    setState(() => isLoadingOrders = true);
+    try {
+      // limit: 0 = no limit, filtered view shows every matching order
+      await _loadResolvedOrders(dateFrom: from, dateTo: to, limit: 0);
+    } catch (e) {
+      if (mounted) setState(() => isLoadingOrders = false);
+    }
+  }
+
+  Future<void> clearOrderDateFilter() async {
+    setState(() {
+      orderFilterFrom = null;
+      orderFilterTo = null;
+      completedOrdersTotal = null;
+      cancelledOrdersTotal = null;
+      isLoadingOrders = true;
+    });
+    await loadCustomerData();
+  }
   // void _showError(String message) {
   //   String errorMessage = '';
   //   if (message == '1') {
@@ -85,9 +208,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    usersServices = UsersServices();
     context.read<UserInfoBloc>().add(
       UserInfoLoadInitiate(userType: widget.userType, id: widget.id.toString()),
     );
+    loadCustomerData();
   }
 
   @override
@@ -105,7 +230,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           String userTypeDetails = '';
           if (widget.userType == 'Individual') {
             userTypeDetails = AppStrings.userDetails.translate(context);
-          } else if (widget.userType == 'service provider') {
+          } else if (widget.userType == 'Service Provider') {
             userTypeDetails = AppStrings.providerDetails.translate(context);
           } else if (widget.userType == 'Driver') {
             userTypeDetails = AppStrings.driverDetails.translate(context);
@@ -225,6 +350,16 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                       cardImage: state.bankInfo!.crImage,
                       accountNumber: state.bankInfo!.ibanNo,
                     ),
+                buildWalletSection(),
+                buildOrdersSection((
+                  name: state.userInfo.name,
+                  mobile: '${state.userInfo.ccode}${state.userInfo.mobile}',
+                  userTypeLabel: widget.userType == 'Individual'
+                      ? 'Customer'
+                      : widget.userType == 'Service Provider'
+                          ? (state.company?.providerTypeLabel ?? 'Product & Delivery Provider')
+                          : (state.userInfo.isCompanyDriver ? 'Company Driver' : 'Single Driver'),
+                )),
                 Center(
                   child:
                       state.userInfo.adminConfirmation == '1'
@@ -432,6 +567,390 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           isReadOnly: true,
         ),
         const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget buildWalletSection() {
+    final isEarningsView = widget.userType == 'Driver' || widget.userType == 'Service Provider';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Text(
+          isEarningsView ? 'Earnings & Payouts' : 'Wallet Summary',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+        if (isLoadingWallet)
+          Center(child: CircularProgressIndicator())
+        else if (walletSummary != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: textFieldDisabled(
+                      labelText: isEarningsView ? 'Pending Payout' : 'Wallet Balance',
+                      textController: TextEditingController(
+                        text: '⃁ ${walletSummary!.balance.toStringAsFixed(2)}',
+                      ),
+                      isReadOnly: true,
+                      style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: textFieldDisabled(
+                      labelText: 'Total Transactions',
+                      textController: TextEditingController(
+                        text: walletSummary!.totalTransactions.toString(),
+                      ),
+                      isReadOnly: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Recent Transactions',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              if (transactions != null && transactions!.isNotEmpty)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: [
+                      DataColumn(label: Text('Type')),
+                      DataColumn(label: Text('Amount')),
+                      DataColumn(label: Text('Description')),
+                      DataColumn(label: Text('Date')),
+                      DataColumn(label: Text('Balance')),
+                    ],
+                    rows: transactions!.map((tx) {
+                      return DataRow(cells: [
+                        DataCell(Text(tx.type)),
+                        DataCell(Text('⃁ ${tx.amount.toStringAsFixed(2)}', style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']))),
+                        DataCell(Text(tx.description)),
+                        DataCell(Text(tx.date.toString().split(' ').first)),
+                        DataCell(Text('⃁ ${tx.balanceAfter.toStringAsFixed(2)}', style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']))),
+                      ]);
+                    }).toList(),
+                  ),
+                )
+              else
+                Center(child: Text('No transactions found')),
+              const SizedBox(height: 10),
+              if (walletSummary!.totalTransactions > 5)
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      // TODO: Implement show all transactions
+                    },
+                    child: Text('Show All Transactions'),
+                  ),
+                ),
+            ],
+          )
+        else
+          Center(child: Text('No wallet data available')),
+      ],
+    );
+  }
+
+  Widget buildOrdersSection(CustomerPdfInfo customerInfo) {
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final isFilterReady = orderFilterFrom != null && orderFilterTo != null;
+    final isFilterValid = !isFilterReady || !orderFilterFrom!.isAfter(orderFilterTo!);
+    final isFilterApplied = completedOrdersTotal != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Text(
+          'Order History',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            OutlinedButton(
+              onPressed: () => pickOrderFilterDate(isFrom: true),
+              child: Text(
+                orderFilterFrom == null ? 'From date' : dateFormat.format(orderFilterFrom!),
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () => pickOrderFilterDate(isFrom: false),
+              child: Text(
+                orderFilterTo == null ? 'To date' : dateFormat.format(orderFilterTo!),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: isFilterReady && isFilterValid ? applyOrderDateFilter : null,
+              child: Text('Apply'),
+            ),
+            if (isFilterApplied)
+              TextButton(
+                onPressed: clearOrderDateFilter,
+                child: Text('Clear'),
+              ),
+          ],
+        ),
+        if (isFilterReady && !isFilterValid)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              '"From date" must be before "To date"',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        const SizedBox(height: 20),
+        if (isLoadingOrders)
+          Center(child: CircularProgressIndicator())
+        else
+          buildResolvedOrdersView(customerInfo),
+      ],
+    );
+  }
+
+  Future<void> _printOrderHistoryPdf({
+    required List<CustomerOrder> orders,
+    required CustomerPdfInfo customerInfo,
+    required String sectionLabel,
+    required bool isCompleted,
+  }) async {
+    setState(() {
+      if (isCompleted) {
+        isGeneratingCompletedPdf = true;
+      } else {
+        isGeneratingCancelledPdf = true;
+      }
+    });
+    try {
+      final bytes = await generateOrderHistoryPdf(
+        orders: orders,
+        userName: customerInfo.name,
+        mobile: customerInfo.mobile,
+        userTypeLabel: customerInfo.userTypeLabel,
+        sectionLabel: sectionLabel,
+        filterFrom: orderFilterFrom,
+        filterTo: orderFilterTo,
+      );
+      final fileName = '${sectionLabel.toLowerCase().replaceAll(' ', '_')}_${widget.id}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      await openPdf(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate PDF: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (isCompleted) {
+            isGeneratingCompletedPdf = false;
+          } else {
+            isGeneratingCancelledPdf = false;
+          }
+        });
+      }
+    }
+  }
+
+  Widget buildResolvedOrdersView(CustomerPdfInfo customerInfo) {
+    final completed = completedOrders ?? [];
+    final cancelled = cancelledOrders ?? [];
+    final completedCount = completedOrdersTotal ?? completed.length;
+    final cancelledCount = cancelledOrdersTotal ?? cancelled.length;
+    final resolvedTotal = completedCount + cancelledCount;
+
+    if (resolvedTotal == 0) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Text(AppStrings.noResolvedOrders.translate(context)),
+        ),
+      );
+    }
+
+    final completedPct = completedCount / resolvedTotal;
+    final cancelledPct = 1 - completedPct;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        buildResolvedRatioBar(completedPct, cancelledPct, completedCount, cancelledCount),
+        const SizedBox(height: 20),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final completedPanel = buildOrderPanel(
+              title: AppStrings.completedOrders.translate(context),
+              color: AppColors.green,
+              count: completedCount,
+              orders: completed,
+              isGeneratingPdf: isGeneratingCompletedPdf,
+              onPrintPdf: () => _printOrderHistoryPdf(
+                orders: completed,
+                customerInfo: customerInfo,
+                sectionLabel: AppStrings.completedOrders.translate(context),
+                isCompleted: true,
+              ),
+            );
+            final cancelledPanel = buildOrderPanel(
+              title: AppStrings.cancelledOrders.translate(context),
+              color: AppColors.error,
+              count: cancelledCount,
+              orders: cancelled,
+              isGeneratingPdf: isGeneratingCancelledPdf,
+              onPrintPdf: () => _printOrderHistoryPdf(
+                orders: cancelled,
+                customerInfo: customerInfo,
+                sectionLabel: AppStrings.cancelledOrders.translate(context),
+                isCompleted: false,
+              ),
+            );
+            if (constraints.maxWidth < 700) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [completedPanel, const SizedBox(height: 24), cancelledPanel],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: completedPanel),
+                const SizedBox(width: 24),
+                Expanded(child: cancelledPanel),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget buildResolvedRatioBar(double completedPct, double cancelledPct, int completedCount, int cancelledCount) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: SizedBox(
+            height: 22,
+            child: Row(
+              children: [
+                if (completedPct > 0)
+                  Expanded(
+                    flex: (completedPct * 1000).round().clamp(1, 1000),
+                    child: Container(color: AppColors.green),
+                  ),
+                if (cancelledPct > 0)
+                  Expanded(
+                    flex: (cancelledPct * 1000).round().clamp(1, 1000),
+                    child: Container(color: AppColors.error),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 20,
+          runSpacing: 8,
+          children: [
+            buildRatioLegendEntry(
+              AppColors.green,
+              '${AppStrings.completedOrders.translate(context)}: ${(completedPct * 100).toStringAsFixed(1)}% ($completedCount)',
+            ),
+            buildRatioLegendEntry(
+              AppColors.error,
+              '${AppStrings.cancelledOrders.translate(context)}: ${(cancelledPct * 100).toStringAsFixed(1)}% ($cancelledCount)',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget buildRatioLegendEntry(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label),
+      ],
+    );
+  }
+
+  Widget buildOrderPanel({
+    required String title,
+    required Color color,
+    required int count,
+    required List<CustomerOrder> orders,
+    required bool isGeneratingPdf,
+    required VoidCallback onPrintPdf,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Text('$title ($count)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            IconButton(
+              tooltip: 'Print PDF',
+              onPressed: isGeneratingPdf || orders.isEmpty ? null : onPrintPdf,
+              icon: isGeneratingPdf
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.picture_as_pdf),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (orders.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text('No orders found'),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: [
+                DataColumn(label: Text('Order #')),
+                DataColumn(label: Text('Amount')),
+                DataColumn(label: Text('Type')),
+                DataColumn(label: Text('Date')),
+              ],
+              rows: orders.map((order) {
+                return DataRow(cells: [
+                  DataCell(Text(order.orderNumber)),
+                  DataCell(Text('⃁ ${order.amount.toStringAsFixed(2)}', style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']))),
+                  DataCell(Text(order.type)),
+                  DataCell(Text(order.date.toString().split(' ').first)),
+                ]);
+              }).toList(),
+            ),
+          ),
       ],
     );
   }

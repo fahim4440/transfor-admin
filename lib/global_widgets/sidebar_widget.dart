@@ -111,9 +111,9 @@ class SidebarWidget extends StatelessWidget {
             ),
             listTile(
               icon: Icons.person,
-              name: AppStrings.users.translate(context),
-              routeName: '/users',
-              route: () => context.go('/users'),
+              name: AppStrings.customers.translate(context),
+              routeName: '/customers',
+              route: () => context.go('/customers'),
             ),
             listTile(
               icon: Icons.home_repair_service,
@@ -127,36 +127,11 @@ class SidebarWidget extends StatelessWidget {
               routeName: '/driver',
               route: () => context.go('/driver'),
             ),
-
-            listTile(
-              icon: Icons.pending,
-              name: AppStrings.pendingProviders.translate(context),
-              routeName: '/pendingProviders',
-              route: () => context.go('/pendingProviders'),
-            ),
-            listTile(
-              icon: Icons.pending,
-              name: AppStrings.pendingDrivers.translate(context),
-              routeName: '/pendingDrivers',
-              route: () => context.go('/pendingDrivers'),
-            ),
             listTile(
               icon: Icons.shopping_bag,
-              name: AppStrings.currentOrders.translate(context),
-              routeName: '/currentOrders',
-              route: () => context.go('/currentOrders'),
-            ),
-            listTile(
-              icon: Icons.check_box,
-              name: AppStrings.completedOrders.translate(context),
-              routeName: '/completedOrders',
-              route: () => context.go('/completedOrders'),
-            ),
-            listTile(
-              icon: Icons.indeterminate_check_box,
-              name: AppStrings.cancelledOrders.translate(context),
-              routeName: '/cancelledOrders',
-              route: () => context.go('/cancelledOrders'),
+              name: AppStrings.orders.translate(context),
+              routeName: '/orders',
+              route: () => context.go('/orders'),
             ),
             listTile(
               icon: Icons.monetization_on,
@@ -175,6 +150,18 @@ class SidebarWidget extends StatelessWidget {
               name: AppStrings.settings.translate(context),
               routeName: '/settings',
               route: () => context.go('/settings'),
+            ),
+            listTile(
+              icon: Icons.photo_library,
+              name: AppStrings.sliderImages.translate(context),
+              routeName: '/sliderImages',
+              route: () => context.go('/sliderImages'),
+            ),
+            listTile(
+              icon: Icons.local_shipping,
+              name: AppStrings.transportTiles.translate(context),
+              routeName: '/transportTiles',
+              route: () => context.go('/transportTiles'),
             ),
             SizedBox(height: AppDimensions.lighterSpacing),
             LanguageToggle(isAppbar: false,),

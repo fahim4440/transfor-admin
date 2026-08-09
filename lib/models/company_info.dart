@@ -30,6 +30,7 @@ class Company {
   final String? companyLogo;
   final String companyDesc;
   final DateTime createdAt;
+  final String? providerType;
 
   Company({
     required this.id,
@@ -38,7 +39,19 @@ class Company {
     this.companyLogo,
     required this.companyDesc,
     required this.createdAt,
+    this.providerType,
   });
+
+  String get providerTypeLabel {
+    switch (providerType?.toLowerCase()) {
+      case 'product':
+        return 'Product Provider';
+      case 'delivery':
+        return 'Delivery Provider';
+      default:
+        return 'Product & Delivery Provider';
+    }
+  }
 
   // Factory constructor to create a Company from JSON
   factory Company.fromJson(Map<String, dynamic> json) {
@@ -49,6 +62,7 @@ class Company {
       companyLogo: json['comapny_logo'] as String?,
       companyDesc: json['company_desc'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      providerType: json['provider_type'] as String?,
     );
   }
 
@@ -61,6 +75,7 @@ class Company {
       'comapny_logo': companyLogo,
       'company_desc': companyDesc,
       'created_at': createdAt.toIso8601String(),
+      'provider_type': providerType,
     };
   }
 }
