@@ -1,11 +1,11 @@
 {
-    "name": "transfor_admin_dashboard",
-    "short_name": "transfor_admin_dashboard",
+    "name": "TransFor Admin",
+    "short_name": "TransFor Admin",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "TransFor Admin Dashboard",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

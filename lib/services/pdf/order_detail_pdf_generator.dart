@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:arabic_reshaper/arabic_reshaper.dart';
@@ -97,7 +98,7 @@ List<pw.Widget> _productSections(ProductOrderDetail d, pw.Font riyalFont) {
       ]),
     if (d.products.isNotEmpty)
       _sectionCard('Items', [
-        for (final p in d.products) _itemRow(p.productName, p.quantity, p.productPrice, p.providerName, riyalFont),
+        for (final p in d.products) _itemRow(p.productName, p.quantity, p.productPrice, p.providerName, p.productImage, riyalFont),
       ]),
     _sectionCard('Payment', [
       if (d.orderAmount != null) _currencyRow('Order Amount', d.orderAmount!, riyalFont),
@@ -217,13 +218,42 @@ pw.Widget _currencyRow(String label, String amount, pw.Font riyalFont, {bool bol
   );
 }
 
-pw.Widget _itemRow(String name, String quantity, String price, String? providerName, pw.Font riyalFont) {
+// Product images are stored as base64 (see product_form_dialog.dart in the
+// provider app), not URLs.
+pw.Widget _itemImage(String? base64String) {
+  const size = 32.0;
+  if (base64String == null || base64String.isEmpty) {
+    return pw.SizedBox(width: size, height: size);
+  }
+  Uint8List bytes;
+  try {
+    bytes = base64Decode(base64String);
+  } catch (_) {
+    return pw.SizedBox(width: size, height: size);
+  }
+  return pw.ClipRRect(
+    horizontalRadius: 4,
+    verticalRadius: 4,
+    child: pw.Image(pw.MemoryImage(bytes), width: size, height: size, fit: pw.BoxFit.cover),
+  );
+}
+
+pw.Widget _itemRow(
+  String name,
+  String quantity,
+  String price,
+  String? providerName,
+  String? productImage,
+  pw.Font riyalFont,
+) {
   final isArabic = ArabicReshaper.isArabic(name);
   final displayName = isArabic ? ArabicReshaper.instance.reshape(name) : name;
   return pw.Padding(
     padding: const pw.EdgeInsets.symmetric(vertical: 4),
     child: pw.Row(
       children: [
+        _itemImage(productImage),
+        pw.SizedBox(width: 8),
         pw.Expanded(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
