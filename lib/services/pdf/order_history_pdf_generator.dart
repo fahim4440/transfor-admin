@@ -7,7 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:transfor_admin_dashboard/models/customer_order.dart';
 
-const _headers = ['Order #', 'Amount', 'Type', 'Date'];
+const _headers = ['Order #', 'Amount', 'Type', 'Date', 'Rating', 'Feedback'];
 const _cellStyle = pw.TextStyle(fontSize: 9);
 const _cellPadding = pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4);
 
@@ -80,6 +80,8 @@ Future<Uint8List> generateOrderHistoryPdf({
                   _amountCell(order.amount.toStringAsFixed(2), riyalFont),
                   _cell(order.type),
                   _cell(order.date.toString().split(' ').first),
+                  _cell(order.rating?.toStringAsFixed(1) ?? '-'),
+                  _cell(order.feedback ?? '-'),
                 ],
               ),
           ],

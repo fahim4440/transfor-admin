@@ -2,7 +2,12 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
+import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:transfor_admin_dashboard/blocs/dashboard/dashboard_bloc.dart';
+import 'package:transfor_admin_dashboard/global_widgets/app_data_grid_theme.dart';
+import 'package:transfor_admin_dashboard/services/excel/dashboard_recent_orders_excel_generator.dart';
+import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
 import 'package:transfor_admin_dashboard/utilities/dimensions.dart';
 import 'package:transfor_admin_dashboard/utilities/colors.dart';
 
@@ -555,10 +560,34 @@ class _StatBreakdownItem extends StatelessWidget {
 }
 
 // Recent Orders Table
-class _RecentOrdersTable extends StatelessWidget {
+class _RecentOrdersTable extends StatefulWidget {
   final List<dynamic> orders;
 
   const _RecentOrdersTable({required this.orders});
+
+  @override
+  State<_RecentOrdersTable> createState() => _RecentOrdersTableState();
+}
+
+class _RecentOrdersTableState extends State<_RecentOrdersTable> {
+  bool isGeneratingExcel = false;
+
+  Future<void> _exportExcel() async {
+    setState(() => isGeneratingExcel = true);
+    try {
+      final bytes = await generateRecentOrdersExcel(orders: widget.orders.take(10).toList());
+      final fileName = 'recent_orders_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      await openExcel(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate Excel file: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isGeneratingExcel = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -576,41 +605,108 @@ class _RecentOrdersTable extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Recent Transactions',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Transactions',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              IconButton(
+                tooltip: 'Export to Excel',
+                onPressed: isGeneratingExcel || widget.orders.isEmpty ? null : _exportExcel,
+                icon: isGeneratingExcel
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.grid_on),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width - 64,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Order ID')),
-                  DataColumn(label: Text('Customer')),
-                  DataColumn(label: Text('Amount')),
-                  DataColumn(label: Text('Status')),
-                  DataColumn(label: Text('Date')),
+          SizedBox(
+            height: 560,
+            child: SfDataGridTheme(
+              data: appDataGridTheme,
+              child: SfDataGrid(
+                source: _RecentOrdersDataSource(orders: widget.orders.take(10).toList()),
+                columns: [
+                  GridColumn(columnName: 'orderNumber', label: dataGridHeaderText('Order ID'), width: 130),
+                  GridColumn(columnName: 'customerName', label: dataGridHeaderText('Customer'), width: 180),
+                  GridColumn(columnName: 'amount', label: dataGridHeaderText('Amount'), width: 130),
+                  GridColumn(columnName: 'status', label: dataGridHeaderText('Status'), width: 150),
+                  GridColumn(columnName: 'date', label: dataGridHeaderText('Date'), width: 130),
                 ],
-                rows: orders.take(10).map((order) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text('#${order.orderNumber}')),
-                      DataCell(Text(order.customerName)),
-                      DataCell(Text('⃁ ${order.amount.toStringAsFixed(2)}', style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']))),
-                      DataCell(_StatusBadge(status: order.getStatusLabel())),
-                      DataCell(Text(order.date.substring(0, 10))),
-                    ],
-                  );
-                }).toList(),
+                allowSorting: true,
+                allowFiltering: true,
+                allowColumnsResizing: true,
+                columnResizeMode: ColumnResizeMode.onResize,
+                headerRowHeight: 44,
+                rowHeight: 52,
+                gridLinesVisibility: GridLinesVisibility.horizontal,
+                headerGridLinesVisibility: GridLinesVisibility.horizontal,
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RecentOrdersDataSource extends DataGridSource {
+  _RecentOrdersDataSource({required List<dynamic> orders}) {
+    _rows = orders.map((order) {
+      return DataGridRow(cells: [
+        DataGridCell<String>(columnName: 'orderNumber', value: '#${order.orderNumber}'),
+        DataGridCell<String>(columnName: 'customerName', value: order.customerName as String),
+        DataGridCell<String>(columnName: 'amount', value: (order.amount as num).toStringAsFixed(2)),
+        DataGridCell<String>(columnName: 'status', value: order.getStatusLabel() as String),
+        DataGridCell<String>(columnName: 'date', value: (order.date as String).substring(0, 10)),
+      ]);
+    }).toList();
+  }
+
+  late List<DataGridRow> _rows;
+
+  @override
+  List<DataGridRow> get rows => _rows;
+
+  @override
+  DataGridRowAdapter buildRow(DataGridRow row) {
+    return DataGridRowAdapter(
+      cells: row.getCells().map<Widget>((cell) {
+        switch (cell.columnName) {
+          case 'amount':
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '⃁ ${cell.value}',
+                  style: const TextStyle(color: AppColors.text, fontFamilyFallback: ['SaudiRiyal']),
+                ),
+              ),
+            );
+          case 'status':
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: _StatusBadge(status: cell.value.toString()),
+            );
+          default:
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(cell.value.toString(), style: const TextStyle(color: AppColors.text)),
+              ),
+            );
+        }
+      }).toList(),
     );
   }
 }

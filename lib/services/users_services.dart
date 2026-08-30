@@ -8,6 +8,7 @@ import 'package:transfor_admin_dashboard/models/user_info.dart';
 import 'package:transfor_admin_dashboard/models/user_vehicle_info.dart';
 import 'package:transfor_admin_dashboard/models/users_profile.dart';
 import 'package:transfor_admin_dashboard/models/customer_order.dart';
+import 'package:transfor_admin_dashboard/models/driver_rating.dart';
 import 'package:transfor_admin_dashboard/models/wallet_transaction.dart';
 
 class UsersServices {
@@ -345,6 +346,23 @@ class UsersServices {
 
     if (transactionsResponse.error == false && transactionsResponse.transactions != null) {
       return transactionsResponse.transactions;
+    } else {
+      return null;
+    }
+  }
+
+  // Driver Rating Summary (avg + total review count)
+  Future<DriverRatingSummary?> getDriverRatingSummary(String id) async {
+    final response = await http.post(
+      Uri.parse('http://128.199.42.59/api/Api.php?apicall=GetDriverRatingSummary'),
+      body: {'id': id},
+    );
+
+    final DriverRatingSummaryResponse ratingResponse =
+        DriverRatingSummaryResponse.fromJson(jsonDecode(response.body));
+
+    if (ratingResponse.error == false && ratingResponse.ratingSummary != null) {
+      return ratingResponse.ratingSummary;
     } else {
       return null;
     }

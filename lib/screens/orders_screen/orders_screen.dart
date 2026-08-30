@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:transfor_admin_dashboard/blocs/orders/orders_bloc.dart';
 import 'package:transfor_admin_dashboard/models/order.dart';
 import 'package:transfor_admin_dashboard/screens/orders_screen/widgets/orders_table.dart';
+import 'package:transfor_admin_dashboard/services/excel/orders_excel_generator.dart';
 import 'package:transfor_admin_dashboard/services/pdf/orders_pdf_generator.dart';
 import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
 import 'package:transfor_admin_dashboard/utilities/colors.dart';
@@ -100,6 +101,7 @@ class _OrdersListViewState extends State<_OrdersListView> {
   DateTime? filterTo;
   int currentPage = 0;
   bool isGeneratingPdf = false;
+  bool isGeneratingExcel = false;
 
   Future<void> _printOrdersPdf(List<Order> orders) async {
     setState(() => isGeneratingPdf = true);
@@ -116,6 +118,19 @@ class _OrdersListViewState extends State<_OrdersListView> {
       _showError('Could not generate PDF: $e');
     } finally {
       if (mounted) setState(() => isGeneratingPdf = false);
+    }
+  }
+
+  Future<void> _exportOrdersExcel(List<Order> orders) async {
+    setState(() => isGeneratingExcel = true);
+    try {
+      final bytes = await generateOrdersExcel(orders: orders);
+      final fileName = 'orders_${widget.ordersCompleteType}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      await openExcel(bytes, fileName);
+    } catch (e) {
+      _showError('Could not generate Excel file: $e');
+    } finally {
+      if (mounted) setState(() => isGeneratingExcel = false);
     }
   }
 
@@ -204,16 +219,32 @@ class _OrdersListViewState extends State<_OrdersListView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     SearchBox(searchType: 'Order'),
-                    IconButton(
-                      tooltip: 'Print PDF',
-                      onPressed: isGeneratingPdf || pagedOrders.isEmpty ? null : () => _printOrdersPdf(pagedOrders),
-                      icon: isGeneratingPdf
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.picture_as_pdf),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Print PDF',
+                          onPressed: isGeneratingPdf || pagedOrders.isEmpty ? null : () => _printOrdersPdf(pagedOrders),
+                          icon: isGeneratingPdf
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.picture_as_pdf),
+                        ),
+                        IconButton(
+                          tooltip: 'Export to Excel',
+                          onPressed: isGeneratingExcel || pagedOrders.isEmpty ? null : () => _exportOrdersExcel(pagedOrders),
+                          icon: isGeneratingExcel
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.grid_on),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
+import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:transfor_admin_dashboard/blocs/user_info/user_info_bloc.dart';
 import 'package:transfor_admin_dashboard/global_widgets/add_button.dart';
+import 'package:transfor_admin_dashboard/global_widgets/app_data_grid_theme.dart';
 import 'package:transfor_admin_dashboard/screens/user_details_screen/widgets/circle_image.dart';
 import 'package:transfor_admin_dashboard/global_widgets/textField.dart';
 import 'package:transfor_admin_dashboard/models/customer_order.dart';
+import 'package:transfor_admin_dashboard/models/driver_rating.dart';
 import 'package:transfor_admin_dashboard/models/wallet_transaction.dart';
+import 'package:transfor_admin_dashboard/services/excel/customer_orders_excel_generator.dart';
+import 'package:transfor_admin_dashboard/services/excel/wallet_transactions_excel_generator.dart';
 import 'package:transfor_admin_dashboard/services/pdf/order_history_pdf_generator.dart';
 import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
 import 'package:transfor_admin_dashboard/services/users_services.dart';
@@ -36,10 +42,15 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   List<CustomerOrder>? cancelledOrders;
   List<WalletTransaction>? transactions;
   WalletSummary? walletSummary;
+  DriverRatingSummary? driverRating;
   bool isLoadingOrders = true;
   bool isLoadingWallet = true;
+  bool isLoadingRating = true;
   bool isGeneratingCompletedPdf = false;
   bool isGeneratingCancelledPdf = false;
+  bool isGeneratingCompletedExcel = false;
+  bool isGeneratingCancelledExcel = false;
+  bool isGeneratingWalletExcel = false;
 
   DateTime? orderFilterFrom;
   DateTime? orderFilterTo;
@@ -68,6 +79,22 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => isLoadingWallet = false);
+    }
+
+    if (userType != 'Driver') {
+      isLoadingRating = false;
+      return;
+    }
+    try {
+      final ratingData = await usersServices.getDriverRatingSummary(id);
+      if (mounted) {
+        setState(() {
+          driverRating = ratingData;
+          isLoadingRating = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => isLoadingRating = false);
     }
   }
 
@@ -350,6 +377,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                       cardImage: state.bankInfo!.crImage,
                       accountNumber: state.bankInfo!.ibanNo,
                     ),
+                if (widget.userType == 'Driver') buildDriverRatingSection(),
                 buildWalletSection(),
                 buildOrdersSection((
                   name: state.userInfo.name,
@@ -571,6 +599,37 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     );
   }
 
+  Widget buildDriverRatingSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Text('Rating', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
+        if (isLoadingRating)
+          Center(child: CircularProgressIndicator())
+        else if (driverRating != null && driverRating!.totalReviews > 0)
+          Row(
+            children: [
+              const Icon(Icons.star, color: Colors.amber, size: 28),
+              const SizedBox(width: 8),
+              Text(
+                driverRating!.avgRating.toStringAsFixed(1),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '(${driverRating!.totalReviews} review${driverRating!.totalReviews == 1 ? '' : 's'})',
+                style: TextStyle(color: AppColors.secondary),
+              ),
+            ],
+          )
+        else
+          Text('No ratings yet', style: TextStyle(color: AppColors.secondary)),
+      ],
+    );
+  }
+
   Widget buildWalletSection() {
     final isEarningsView = widget.userType == 'Driver' || widget.userType == 'Service Provider';
 
@@ -614,31 +673,52 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              Text(
-                'Recent Transactions',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Transactions',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    tooltip: 'Export to Excel',
+                    onPressed: isGeneratingWalletExcel || (transactions?.isEmpty ?? true)
+                        ? null
+                        : _exportWalletTransactionsExcel,
+                    icon: isGeneratingWalletExcel
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.grid_on),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               if (transactions != null && transactions!.isNotEmpty)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: [
-                      DataColumn(label: Text('Type')),
-                      DataColumn(label: Text('Amount')),
-                      DataColumn(label: Text('Description')),
-                      DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Balance')),
-                    ],
-                    rows: transactions!.map((tx) {
-                      return DataRow(cells: [
-                        DataCell(Text(tx.type)),
-                        DataCell(Text('⃁ ${tx.amount.toStringAsFixed(2)}', style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']))),
-                        DataCell(Text(tx.description)),
-                        DataCell(Text(tx.date.toString().split(' ').first)),
-                        DataCell(Text('⃁ ${tx.balanceAfter.toStringAsFixed(2)}', style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']))),
-                      ]);
-                    }).toList(),
+                SizedBox(
+                  height: 320,
+                  child: SfDataGridTheme(
+                    data: appDataGridTheme,
+                    child: SfDataGrid(
+                      source: _WalletTransactionsDataSource(transactions: transactions!),
+                      columns: [
+                        GridColumn(columnName: 'type', label: dataGridHeaderText('Type'), width: 110),
+                        GridColumn(columnName: 'amount', label: dataGridHeaderText('Amount'), width: 120),
+                        GridColumn(columnName: 'description', label: dataGridHeaderText('Description'), width: 220),
+                        GridColumn(columnName: 'date', label: dataGridHeaderText('Date'), width: 120),
+                        GridColumn(columnName: 'balance', label: dataGridHeaderText('Balance'), width: 120),
+                      ],
+                      allowSorting: true,
+                      allowFiltering: true,
+                      allowColumnsResizing: true,
+                      columnResizeMode: ColumnResizeMode.onResize,
+                      headerRowHeight: 40,
+                      rowHeight: 48,
+                      gridLinesVisibility: GridLinesVisibility.horizontal,
+                      headerGridLinesVisibility: GridLinesVisibility.horizontal,
+                    ),
                   ),
                 )
               else
@@ -765,6 +845,58 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     }
   }
 
+  Future<void> _exportOrderHistoryExcel({
+    required List<CustomerOrder> orders,
+    required String sectionLabel,
+    required bool isCompleted,
+  }) async {
+    setState(() {
+      if (isCompleted) {
+        isGeneratingCompletedExcel = true;
+      } else {
+        isGeneratingCancelledExcel = true;
+      }
+    });
+    try {
+      final bytes = await generateCustomerOrdersExcel(orders: orders, sheetName: sectionLabel);
+      final fileName = '${sectionLabel.toLowerCase().replaceAll(' ', '_')}_${widget.id}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      await openExcel(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate Excel file: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (isCompleted) {
+            isGeneratingCompletedExcel = false;
+          } else {
+            isGeneratingCancelledExcel = false;
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _exportWalletTransactionsExcel() async {
+    setState(() => isGeneratingWalletExcel = true);
+    try {
+      final bytes = await generateWalletTransactionsExcel(transactions: transactions ?? []);
+      final fileName = 'wallet_transactions_${widget.id}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      await openExcel(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate Excel file: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isGeneratingWalletExcel = false);
+    }
+  }
+
   Widget buildResolvedOrdersView(CustomerPdfInfo customerInfo) {
     final completed = completedOrders ?? [];
     final cancelled = cancelledOrders ?? [];
@@ -803,6 +935,12 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 sectionLabel: AppStrings.completedOrders.translate(context),
                 isCompleted: true,
               ),
+              isGeneratingExcel: isGeneratingCompletedExcel,
+              onExportExcel: () => _exportOrderHistoryExcel(
+                orders: completed,
+                sectionLabel: AppStrings.completedOrders.translate(context),
+                isCompleted: true,
+              ),
             );
             final cancelledPanel = buildOrderPanel(
               title: AppStrings.cancelledOrders.translate(context),
@@ -813,6 +951,12 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
               onPrintPdf: () => _printOrderHistoryPdf(
                 orders: cancelled,
                 customerInfo: customerInfo,
+                sectionLabel: AppStrings.cancelledOrders.translate(context),
+                isCompleted: false,
+              ),
+              isGeneratingExcel: isGeneratingCancelledExcel,
+              onExportExcel: () => _exportOrderHistoryExcel(
+                orders: cancelled,
                 sectionLabel: AppStrings.cancelledOrders.translate(context),
                 isCompleted: false,
               ),
@@ -898,6 +1042,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     required List<CustomerOrder> orders,
     required bool isGeneratingPdf,
     required VoidCallback onPrintPdf,
+    required bool isGeneratingExcel,
+    required VoidCallback onExportExcel,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -912,16 +1058,32 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 Text('$title ($count)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
-            IconButton(
-              tooltip: 'Print PDF',
-              onPressed: isGeneratingPdf || orders.isEmpty ? null : onPrintPdf,
-              icon: isGeneratingPdf
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.picture_as_pdf),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Print PDF',
+                  onPressed: isGeneratingPdf || orders.isEmpty ? null : onPrintPdf,
+                  icon: isGeneratingPdf
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.picture_as_pdf),
+                ),
+                IconButton(
+                  tooltip: 'Export to Excel',
+                  onPressed: isGeneratingExcel || orders.isEmpty ? null : onExportExcel,
+                  icon: isGeneratingExcel
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.grid_on),
+                ),
+              ],
             ),
           ],
         ),
@@ -932,26 +1094,118 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
             child: Text('No orders found'),
           )
         else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columns: [
-                DataColumn(label: Text('Order #')),
-                DataColumn(label: Text('Amount')),
-                DataColumn(label: Text('Type')),
-                DataColumn(label: Text('Date')),
-              ],
-              rows: orders.map((order) {
-                return DataRow(cells: [
-                  DataCell(Text(order.orderNumber)),
-                  DataCell(Text('⃁ ${order.amount.toStringAsFixed(2)}', style: const TextStyle(fontFamilyFallback: ['SaudiRiyal']))),
-                  DataCell(Text(order.type)),
-                  DataCell(Text(order.date.toString().split(' ').first)),
-                ]);
-              }).toList(),
+          SizedBox(
+            height: 280,
+            child: SfDataGridTheme(
+              data: appDataGridTheme,
+              child: SfDataGrid(
+                source: _CustomerOrdersDataSource(orders: orders),
+                columns: [
+                  GridColumn(columnName: 'orderNumber', label: dataGridHeaderText('Order #'), width: 130),
+                  GridColumn(columnName: 'amount', label: dataGridHeaderText('Amount'), width: 110),
+                  GridColumn(columnName: 'type', label: dataGridHeaderText('Type'), width: 100),
+                  GridColumn(columnName: 'date', label: dataGridHeaderText('Date'), width: 110),
+                  GridColumn(columnName: 'rating', label: dataGridHeaderText('Rating'), width: 90),
+                  GridColumn(columnName: 'feedback', label: dataGridHeaderText('Feedback'), width: 220),
+                ],
+                allowSorting: true,
+                allowFiltering: true,
+                allowColumnsResizing: true,
+                columnResizeMode: ColumnResizeMode.onResize,
+                headerRowHeight: 40,
+                rowHeight: 48,
+                gridLinesVisibility: GridLinesVisibility.horizontal,
+                headerGridLinesVisibility: GridLinesVisibility.horizontal,
+              ),
             ),
           ),
       ],
+    );
+  }
+}
+
+Widget _currencyCell(String amount) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        '⃁ $amount',
+        style: const TextStyle(color: AppColors.text, fontFamilyFallback: ['SaudiRiyal']),
+      ),
+    ),
+  );
+}
+
+Widget _textCell(String text) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(text, style: const TextStyle(color: AppColors.text)),
+    ),
+  );
+}
+
+class _WalletTransactionsDataSource extends DataGridSource {
+  _WalletTransactionsDataSource({required List<WalletTransaction> transactions}) {
+    _rows = transactions.map((tx) {
+      return DataGridRow(cells: [
+        DataGridCell<String>(columnName: 'type', value: tx.type),
+        DataGridCell<String>(columnName: 'amount', value: tx.amount.toStringAsFixed(2)),
+        DataGridCell<String>(columnName: 'description', value: tx.description),
+        DataGridCell<String>(columnName: 'date', value: tx.date.toString().split(' ').first),
+        DataGridCell<String>(columnName: 'balance', value: tx.balanceAfter.toStringAsFixed(2)),
+      ]);
+    }).toList();
+  }
+
+  late List<DataGridRow> _rows;
+
+  @override
+  List<DataGridRow> get rows => _rows;
+
+  @override
+  DataGridRowAdapter buildRow(DataGridRow row) {
+    return DataGridRowAdapter(
+      cells: row.getCells().map<Widget>((cell) {
+        if (cell.columnName == 'amount' || cell.columnName == 'balance') {
+          return _currencyCell(cell.value.toString());
+        }
+        return _textCell(cell.value.toString());
+      }).toList(),
+    );
+  }
+}
+
+class _CustomerOrdersDataSource extends DataGridSource {
+  _CustomerOrdersDataSource({required List<CustomerOrder> orders}) {
+    _rows = orders.map((order) {
+      return DataGridRow(cells: [
+        DataGridCell<String>(columnName: 'orderNumber', value: order.orderNumber),
+        DataGridCell<String>(columnName: 'amount', value: order.amount.toStringAsFixed(2)),
+        DataGridCell<String>(columnName: 'type', value: order.type),
+        DataGridCell<String>(columnName: 'date', value: order.date.toString().split(' ').first),
+        DataGridCell<String>(columnName: 'rating', value: order.rating?.toStringAsFixed(1) ?? '-'),
+        DataGridCell<String>(columnName: 'feedback', value: order.feedback ?? '-'),
+      ]);
+    }).toList();
+  }
+
+  late List<DataGridRow> _rows;
+
+  @override
+  List<DataGridRow> get rows => _rows;
+
+  @override
+  DataGridRowAdapter buildRow(DataGridRow row) {
+    return DataGridRowAdapter(
+      cells: row.getCells().map<Widget>((cell) {
+        if (cell.columnName == 'amount') {
+          return _currencyCell(cell.value.toString());
+        }
+        return _textCell(cell.value.toString());
+      }).toList(),
     );
   }
 }

@@ -28,6 +28,8 @@ class CustomerOrder {
   final String status;
   final String date;
   final String type;
+  final double? rating;
+  final String? feedback;
 
   CustomerOrder({
     required this.id,
@@ -36,6 +38,8 @@ class CustomerOrder {
     required this.status,
     required this.date,
     required this.type,
+    this.rating,
+    this.feedback,
   });
 
   factory CustomerOrder.fromJson(Map<String, dynamic> json) => CustomerOrder(
@@ -45,6 +49,8 @@ class CustomerOrder {
     status: json['status'] ?? '0',
     date: json['date'] ?? '',
     type: json['type'] ?? 'order',
+    rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+    feedback: json['feedback'],
   );
 
   String getStatusLabel() {

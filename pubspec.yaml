@@ -49,6 +49,9 @@ dependencies:
   path_provider: ^2.1.4
   url_launcher: ^6.3.0
   arabic_reshaper: ^0.0.1
+  syncfusion_flutter_core: ^34.2.4
+  syncfusion_flutter_datagrid: ^34.2.4
+  excel: ^4.0.6
 
 dev_dependencies:
   flutter_test:

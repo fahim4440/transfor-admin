@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:transfor_admin_dashboard/blocs/users/users_bloc.dart';
 import 'package:transfor_admin_dashboard/global_widgets/add_button.dart';
 import 'package:transfor_admin_dashboard/global_widgets/seachbox.dart';
+import 'package:transfor_admin_dashboard/models/users_profile.dart';
 import 'package:transfor_admin_dashboard/screens/users_screen/widgets/users_table.dart';
+import 'package:transfor_admin_dashboard/services/excel/users_excel_generator.dart';
+import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
 import 'package:transfor_admin_dashboard/utilities/app_strings.dart';
 import 'package:transfor_admin_dashboard/utilities/dimensions.dart';
 
@@ -29,6 +32,28 @@ class UsersScreen extends StatefulWidget {
 }
 
 class _UsersScreenState extends State<UsersScreen> {
+  bool isGeneratingExcel = false;
+
+  Future<void> _exportExcel(List<UserProfile> users) async {
+    setState(() => isGeneratingExcel = true);
+    try {
+      final bytes = await generateUsersExcel(
+        users: users,
+        showProviderTypeColumn: widget.showProviderTypeColumn,
+      );
+      final fileName = 'users_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      await openExcel(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate Excel file: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isGeneratingExcel = false);
+    }
+  }
+
   void _showError(String message) {
     AwesomeDialog(
       context: context,
@@ -89,6 +114,17 @@ class _UsersScreenState extends State<UsersScreen> {
                       addButton(AppStrings.addDriver.translate(context), () {
                         context.go('/add-driver');
                       }),
+                    IconButton(
+                      tooltip: 'Export to Excel',
+                      onPressed: isGeneratingExcel || visibleUsers.isEmpty ? null : () => _exportExcel(visibleUsers),
+                      icon: isGeneratingExcel
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.grid_on),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),

@@ -6,6 +6,7 @@ import 'package:transfor_admin_dashboard/blocs/payout_request/payout_request_blo
 import 'package:transfor_admin_dashboard/models/payout_request.dart';
 import 'package:transfor_admin_dashboard/screens/payout_request_screen/widgets/dropdown_button.dart';
 import 'package:transfor_admin_dashboard/screens/payout_request_screen/widgets/payout_requests_table.dart';
+import 'package:transfor_admin_dashboard/services/excel/payout_requests_excel_generator.dart';
 import 'package:transfor_admin_dashboard/services/pdf/payout_request_pdf_generator.dart';
 import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
 
@@ -28,6 +29,7 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
   DateTime? filterTo;
   int currentPage = 0;
   bool isGeneratingPdf = false;
+  bool isGeneratingExcel = false;
 
   Future<void> _printPdf(List<PayoutRequest> payoutRequests, String categoryLabel) async {
     setState(() => isGeneratingPdf = true);
@@ -48,6 +50,23 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
       }
     } finally {
       if (mounted) setState(() => isGeneratingPdf = false);
+    }
+  }
+
+  Future<void> _exportExcel(List<PayoutRequest> payoutRequests) async {
+    setState(() => isGeneratingExcel = true);
+    try {
+      final bytes = await generatePayoutRequestsExcel(payoutRequests: payoutRequests);
+      final fileName = 'payout_requests_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      await openExcel(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate Excel file: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isGeneratingExcel = false);
     }
   }
 
@@ -175,6 +194,19 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.picture_as_pdf),
+                    ),
+                    IconButton(
+                      tooltip: 'Export to Excel',
+                      onPressed: isGeneratingExcel || pagedPayoutRequests.isEmpty
+                          ? null
+                          : () => _exportExcel(pagedPayoutRequests),
+                      icon: isGeneratingExcel
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.grid_on),
                     ),
                   ],
                 ),

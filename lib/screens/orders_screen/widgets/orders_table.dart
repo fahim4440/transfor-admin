@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
+import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
+import '../../../global_widgets/app_data_grid_theme.dart';
 import '../../../models/order.dart';
 import '../../../utilities/app_strings.dart';
 import '../../../utilities/colors.dart';
-import '../../../utilities/text_styles.dart';
 import '../../users_screen/widgets/button.dart';
 import 'order_detail_dialog.dart';
 
@@ -16,195 +18,150 @@ class OrdersTable extends StatefulWidget {
 }
 
 class _OrdersTableState extends State<OrdersTable> {
-  int _currentSortColumn = 0;
-  bool _isSortAsc = true;
-  int rowIndex = 0;
+  late _OrdersDataSource _dataSource;
+
+  @override
+  void initState() {
+    super.initState();
+    _dataSource = _OrdersDataSource(orders: widget.orders, onView: _viewOrder);
+  }
+
+  @override
+  void didUpdateWidget(covariant OrdersTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.orders != widget.orders) {
+      _dataSource.updateOrders(widget.orders);
+    }
+  }
+
+  void _viewOrder(Order order) => showOrderDetailDialog(context, order);
+
+  List<GridColumn> _buildColumns(BuildContext context) {
+    return [
+      GridColumn(columnName: 'id', label: dataGridHeaderText(AppStrings.no.translate(context)), width: 90, allowFiltering: false),
+      GridColumn(columnName: 'orderNumber', label: dataGridHeaderText(AppStrings.orderNo.translate(context)), width: 140),
+      GridColumn(columnName: 'userName', label: dataGridHeaderText(AppStrings.name.translate(context)), width: 160),
+      GridColumn(columnName: 'userMobile', label: dataGridHeaderText(AppStrings.mobile.translate(context)), width: 140),
+      GridColumn(columnName: 'userEmail', label: dataGridHeaderText(AppStrings.email.translate(context)), width: 200),
+      GridColumn(columnName: 'totalAmount', label: dataGridHeaderText(AppStrings.amount.translate(context)), width: 120),
+      GridColumn(columnName: 'type', label: dataGridHeaderText(AppStrings.type.translate(context)), width: 110),
+      GridColumn(columnName: 'status', label: dataGridHeaderText(AppStrings.status.translate(context)), width: 140),
+      GridColumn(columnName: 'date', label: dataGridHeaderText(AppStrings.date.translate(context)), width: 130),
+      GridColumn(
+        columnName: 'action',
+        label: dataGridHeaderText(AppStrings.action.translate(context)),
+        width: 110,
+        allowSorting: false,
+        allowFiltering: false,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: DataTable(
-          headingTextStyle: AppTextStyles.whiteNormalText,
-          headingRowColor: WidgetStateColor.resolveWith(
-            (states) => AppColors.primary,
-          ),
-          sortAscending: _isSortAsc,
-          sortColumnIndex: _currentSortColumn,
-          dividerThickness: 0.0,
-          dataRowMaxHeight: 80,
-          columns: [
-            DataColumn(label: Text(AppStrings.no.translate(context))),
-            DataColumn(
-              label: Text(AppStrings.orderNo.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort((a, b) => b.orderNumber.compareTo(a.orderNumber));
-                  } else {
-                    widget.orders.sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(
-              label: Text(AppStrings.name.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort((a, b) => b.userName.compareTo(a.userName));
-                  } else {
-                    widget.orders.sort((a, b) => a.userName.compareTo(b.userName));
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(
-              label: Text(AppStrings.mobile.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort((a, b) => b.userMobile.compareTo(a.userMobile));
-                  } else {
-                    widget.orders.sort((a, b) => a.userMobile.compareTo(b.userMobile));
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(
-              label: Text(AppStrings.email.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort(
-                      (a, b) => b.userEmail.compareTo(a.userEmail),
-                    );
-                  } else {
-                    widget.orders.sort(
-                      (a, b) => a.userEmail.compareTo(b.userEmail),
-                    );
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(
-              label: Text(AppStrings.amount.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort(
-                      (a, b) => b.totalAmount.compareTo(a.totalAmount),
-                    );
-                  } else {
-                    widget.orders.sort(
-                      (a, b) => a.totalAmount.compareTo(b.totalAmount),
-                    );
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(
-              label: Text(AppStrings.type.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort(
-                      (a, b) => b.type.compareTo(a.type),
-                    );
-                  } else {
-                    widget.orders.sort(
-                      (a, b) => a.type.compareTo(b.type),
-                    );
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(
-              label: Text(AppStrings.status.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort(
-                      (a, b) => b.status.compareTo(a.status),
-                    );
-                  } else {
-                    widget.orders.sort(
-                      (a, b) => a.status.compareTo(b.status),
-                    );
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(
-              label: Text(AppStrings.date.translate(context)),
-              onSort: (columnIndex, _) {
-                setState(() {
-                  _currentSortColumn = columnIndex;
-                  if (_isSortAsc) {
-                    widget.orders.sort(
-                      (a, b) => b.createdAt.compareTo(a.createdAt),
-                    );
-                  } else {
-                    widget.orders.sort(
-                      (a, b) => a.createdAt.compareTo(b.createdAt),
-                    );
-                  }
-                  _isSortAsc = !_isSortAsc;
-                });
-              },
-            ),
-            DataColumn(label: Text(AppStrings.action.translate(context))),
-          ],
-          rows:
-              widget.orders.map((order) {
-                rowIndex = rowIndex + 1;
-                return DataRow(
-                  color:
-                      rowIndex % 2 == 1
-                          ? WidgetStateColor.resolveWith(
-                            (states) => AppColors.background,
-                          )
-                          : WidgetStateColor.resolveWith(
-                            (states) =>
-                                AppColors.drawerBgColor.withValues(alpha: 0.1),
-                          ),
-                  cells: [
-                    DataCell(Text(order.id.toString())),
-                    DataCell(Text(order.orderNumber)),
-                    DataCell(Text(order.userName)),
-                    DataCell(Text(order.userMobile)),
-                    DataCell(Text(order.userEmail)),
-                    DataCell(Text(order.totalAmount.toString())),
-                    DataCell(Text(order.type)),
-                    DataCell(Text(order.status, style: TextStyle(color: order.status != 'Processing' ? order.status != 'Order Placed' ? order.status != 'Completed' ? order.status != 'Cancelled' ? AppColors.secondary : AppColors.error : AppColors.green : AppColors.primary : AppColors.green),)),
-                    DataCell(
-                      Text(order.createdAt.toIso8601String().split('T').first),
-                    ),
-                    DataCell(
-                      actionButton("View", Colors.teal, () {
-                        showOrderDetailDialog(context, order);
-                      }),
-                    ),
-                  ],
-                );
-              }).toList(),
-        ),
+    return SfDataGridTheme(
+      data: appDataGridTheme,
+      child: SfDataGrid(
+        source: _dataSource,
+        columns: _buildColumns(context),
+        allowSorting: true,
+        allowFiltering: true,
+        allowColumnsResizing: true,
+        columnResizeMode: ColumnResizeMode.onResize,
+        headerRowHeight: 44,
+        rowHeight: 52,
+        gridLinesVisibility: GridLinesVisibility.horizontal,
+        headerGridLinesVisibility: GridLinesVisibility.horizontal,
       ),
+    );
+  }
+}
+
+class _OrdersDataSource extends DataGridSource {
+  _OrdersDataSource({required List<Order> orders, required this.onView}) {
+    _orders = orders;
+    _rows = _rowsFor(_orders);
+  }
+
+  final void Function(Order order) onView;
+  late List<Order> _orders;
+  late List<DataGridRow> _rows;
+
+  List<DataGridRow> _rowsFor(List<Order> orders) {
+    return orders.map((order) {
+      return DataGridRow(cells: [
+        DataGridCell<String>(columnName: 'id', value: order.id.toString()),
+        DataGridCell<String>(columnName: 'orderNumber', value: order.orderNumber),
+        DataGridCell<String>(columnName: 'userName', value: order.userName),
+        DataGridCell<String>(columnName: 'userMobile', value: order.userMobile),
+        DataGridCell<String>(columnName: 'userEmail', value: order.userEmail),
+        DataGridCell<String>(columnName: 'totalAmount', value: order.totalAmount),
+        DataGridCell<String>(columnName: 'type', value: order.type),
+        DataGridCell<String>(columnName: 'status', value: order.status),
+        DataGridCell<String>(columnName: 'date', value: order.createdAt.toIso8601String().split('T').first),
+        DataGridCell<String>(columnName: 'action', value: order.id.toString()),
+      ]);
+    }).toList();
+  }
+
+  void updateOrders(List<Order> orders) {
+    _orders = orders;
+    _rows = _rowsFor(_orders);
+    notifyListeners();
+  }
+
+  Order _orderForRow(DataGridRow row) {
+    final id = row.getCells().firstWhere((cell) => cell.columnName == 'id').value as String;
+    return _orders.firstWhere((order) => order.id.toString() == id);
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Processing':
+        return AppColors.green;
+      case 'Order Placed':
+        return AppColors.primary;
+      case 'Completed':
+        return AppColors.green;
+      case 'Cancelled':
+        return AppColors.error;
+      default:
+        return AppColors.secondary;
+    }
+  }
+
+  @override
+  List<DataGridRow> get rows => _rows;
+
+  @override
+  DataGridRowAdapter buildRow(DataGridRow row) {
+    return DataGridRowAdapter(
+      cells: row.getCells().map<Widget>((cell) {
+        switch (cell.columnName) {
+          case 'status':
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(cell.value.toString(), style: TextStyle(color: _statusColor(cell.value.toString()))),
+              ),
+            );
+          case 'action':
+            final order = _orderForRow(row);
+            return Align(
+              alignment: Alignment.center,
+              child: actionButton("View", Colors.teal, () => onView(order)),
+            );
+          default:
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(cell.value.toString(), style: const TextStyle(color: AppColors.text)),
+              ),
+            );
+        }
+      }).toList(),
     );
   }
 }
