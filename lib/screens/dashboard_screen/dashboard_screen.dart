@@ -571,11 +571,17 @@ class _RecentOrdersTable extends StatefulWidget {
 
 class _RecentOrdersTableState extends State<_RecentOrdersTable> {
   bool isGeneratingExcel = false;
+  // Kept as a stable field (not rebuilt fresh each build) so the grid's own column
+  // filter/sort survives unrelated rebuilds - export must read effectiveRows off
+  // this same instance, not the raw list.
+  _RecentOrdersDataSource? _dataSource;
 
   Future<void> _exportExcel() async {
     setState(() => isGeneratingExcel = true);
     try {
-      final bytes = await generateRecentOrdersExcel(orders: widget.orders.take(10).toList());
+      final bytes = await generateRecentOrdersExcel(
+        orders: _dataSource?.visibleForExport() ?? widget.orders.take(10).toList(),
+      );
       final fileName = 'recent_orders_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await openExcel(bytes, fileName);
     } catch (e) {
@@ -633,7 +639,8 @@ class _RecentOrdersTableState extends State<_RecentOrdersTable> {
             child: SfDataGridTheme(
               data: appDataGridTheme,
               child: SfDataGrid(
-                source: _RecentOrdersDataSource(orders: widget.orders.take(10).toList()),
+                source: (_dataSource ??= _RecentOrdersDataSource(orders: widget.orders.take(10).toList()))
+                  ..update(widget.orders.take(10).toList()),
                 columns: [
                   GridColumn(columnName: 'orderNumber', label: dataGridHeaderText('Order ID'), width: 130),
                   GridColumn(columnName: 'customerName', label: dataGridHeaderText('Customer'), width: 180),
@@ -660,7 +667,15 @@ class _RecentOrdersTableState extends State<_RecentOrdersTable> {
 
 class _RecentOrdersDataSource extends DataGridSource {
   _RecentOrdersDataSource({required List<dynamic> orders}) {
-    _rows = orders.map((order) {
+    _orders = orders;
+    _rows = _rowsFor(_orders);
+  }
+
+  late List<dynamic> _orders;
+  late List<DataGridRow> _rows;
+
+  List<DataGridRow> _rowsFor(List<dynamic> orders) {
+    return orders.map((order) {
       return DataGridRow(cells: [
         DataGridCell<String>(columnName: 'orderNumber', value: '#${order.orderNumber}'),
         DataGridCell<String>(columnName: 'customerName', value: order.customerName as String),
@@ -671,7 +686,22 @@ class _RecentOrdersDataSource extends DataGridSource {
     }).toList();
   }
 
-  late List<DataGridRow> _rows;
+  /// Refreshes the underlying rows in place without replacing this instance -
+  /// replacing it would wipe the grid's own column filter/sort state.
+  void update(List<dynamic> orders) {
+    _orders = orders;
+    _rows = _rowsFor(_orders);
+    notifyListeners();
+  }
+
+  dynamic _orderForRow(DataGridRow row) {
+    final orderNumber = row.getCells().firstWhere((cell) => cell.columnName == 'orderNumber').value as String;
+    return _orders.firstWhere((order) => '#${order.orderNumber}' == orderNumber);
+  }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source order objects.
+  List<dynamic> visibleForExport() => effectiveRows.map(_orderForRow).toList();
 
   @override
   List<DataGridRow> get rows => _rows;

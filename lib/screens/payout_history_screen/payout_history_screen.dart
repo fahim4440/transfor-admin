@@ -33,12 +33,16 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
   int currentPage = 0;
   bool isGeneratingPdf = false;
   bool isGeneratingExcel = false;
+  // Kept as a stable field (not rebuilt fresh each build) so the grid's own column
+  // filter/sort survives unrelated rebuilds - export/print must read effectiveRows
+  // off this same instance, not the raw paged list.
+  _PayoutHistoryDataSource? _dataSource;
 
   Future<void> _printPdf(List<PayoutHistory> payoutHistories) async {
     setState(() => isGeneratingPdf = true);
     try {
       final bytes = await generatePayoutHistoryPdf(
-        payoutHistories: payoutHistories,
+        payoutHistories: _dataSource?.visibleForExport() ?? payoutHistories,
         filterFrom: filterFrom,
         filterTo: filterTo,
       );
@@ -58,7 +62,7 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
   Future<void> _exportExcel(List<PayoutHistory> payoutHistories) async {
     setState(() => isGeneratingExcel = true);
     try {
-      final bytes = await generatePayoutHistoryExcel(payoutHistories: payoutHistories);
+      final bytes = await generatePayoutHistoryExcel(payoutHistories: _dataSource?.visibleForExport() ?? payoutHistories);
       final fileName = 'payout_history_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await openExcel(bytes, fileName);
     } catch (e) {
@@ -242,11 +246,12 @@ class _PayoutHistoryScreenState extends State<PayoutHistoryScreen> {
                   child: SfDataGridTheme(
                     data: appDataGridTheme,
                     child: SfDataGrid(
-                      source: _PayoutHistoryDataSource(
+                      source: (_dataSource ??= _PayoutHistoryDataSource(
                         payoutHistories: pagedPayoutHistories,
                         onView: _viewOrder,
                         paidLabel: AppStrings.paid.translate(context),
-                      ),
+                      ))
+                        ..update(pagedPayoutHistories, paidLabel: AppStrings.paid.translate(context)),
                       columns: [
                         GridColumn(columnName: 'id', label: dataGridHeaderText(AppStrings.no.translate(context)), width: 90, allowFiltering: false),
                         GridColumn(columnName: 'requestId', label: dataGridHeaderText(AppStrings.requestId.translate(context)), width: 130),
@@ -312,7 +317,16 @@ class _PayoutHistoryDataSource extends DataGridSource {
     required this.paidLabel,
   }) {
     _payoutHistories = payoutHistories;
-    _rows = payoutHistories.map((payoutHistory) {
+    _rows = _rowsFor(_payoutHistories);
+  }
+
+  final void Function(PayoutHistory payoutHistory) onView;
+  String paidLabel;
+  late List<PayoutHistory> _payoutHistories;
+  late List<DataGridRow> _rows;
+
+  List<DataGridRow> _rowsFor(List<PayoutHistory> payoutHistories) {
+    return payoutHistories.map((payoutHistory) {
       return DataGridRow(cells: [
         DataGridCell<String>(columnName: 'id', value: payoutHistory.id),
         DataGridCell<String>(columnName: 'requestId', value: 'TRANS${payoutHistory.id}'),
@@ -326,15 +340,24 @@ class _PayoutHistoryDataSource extends DataGridSource {
     }).toList();
   }
 
-  final void Function(PayoutHistory payoutHistory) onView;
-  final String paidLabel;
-  late List<PayoutHistory> _payoutHistories;
-  late List<DataGridRow> _rows;
+  /// Refreshes the underlying rows/label in place (e.g. on pagination or a
+  /// locale change) without replacing this instance - replacing it would wipe
+  /// the grid's own column filter/sort state.
+  void update(List<PayoutHistory> payoutHistories, {required String paidLabel}) {
+    _payoutHistories = payoutHistories;
+    this.paidLabel = paidLabel;
+    _rows = _rowsFor(_payoutHistories);
+    notifyListeners();
+  }
 
   PayoutHistory _historyForRow(DataGridRow row) {
     final id = row.getCells().firstWhere((cell) => cell.columnName == 'id').value as String;
     return _payoutHistories.firstWhere((history) => history.id == id);
   }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source [PayoutHistory]s.
+  List<PayoutHistory> visibleForExport() => effectiveRows.map(_historyForRow).toList();
 
   @override
   List<DataGridRow> get rows => _rows;

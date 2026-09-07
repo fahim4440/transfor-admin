@@ -14,10 +14,14 @@ class OrdersTable extends StatefulWidget {
   const OrdersTable({super.key, required this.orders});
 
   @override
-  State<OrdersTable> createState() => _OrdersTableState();
+  State<OrdersTable> createState() => OrdersTableState();
 }
 
-class _OrdersTableState extends State<OrdersTable> {
+class OrdersTableState extends State<OrdersTable> {
+  /// Orders currently visible in the grid, honoring any column filter/sort the
+  /// user applied via the grid's own header UI - what "Export"/"Print" should use.
+  List<Order> visibleForExport() => _dataSource.visibleForExport();
+
   late _OrdersDataSource _dataSource;
 
   @override
@@ -114,6 +118,10 @@ class _OrdersDataSource extends DataGridSource {
     final id = row.getCells().firstWhere((cell) => cell.columnName == 'id').value as String;
     return _orders.firstWhere((order) => order.id.toString() == id);
   }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source [Order]s.
+  List<Order> visibleForExport() => effectiveRows.map(_orderForRow).toList();
 
   Color _statusColor(String status) {
     switch (status) {

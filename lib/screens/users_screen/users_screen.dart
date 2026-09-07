@@ -33,6 +33,7 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   bool isGeneratingExcel = false;
+  final _tableKey = GlobalKey<UsersTableState>();
 
   Future<void> _exportExcel(List<UserProfile> users) async {
     setState(() => isGeneratingExcel = true);
@@ -116,7 +117,9 @@ class _UsersScreenState extends State<UsersScreen> {
                       }),
                     IconButton(
                       tooltip: 'Export to Excel',
-                      onPressed: isGeneratingExcel || visibleUsers.isEmpty ? null : () => _exportExcel(visibleUsers),
+                      onPressed: isGeneratingExcel || visibleUsers.isEmpty
+                          ? null
+                          : () => _exportExcel(_tableKey.currentState?.visibleForExport() ?? visibleUsers),
                       icon: isGeneratingExcel
                           ? const SizedBox(
                               width: 20,
@@ -130,6 +133,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: UsersTable(
+                    key: _tableKey,
                     users: visibleUsers,
                     showProviderTypeColumn: widget.showProviderTypeColumn,
                   ),

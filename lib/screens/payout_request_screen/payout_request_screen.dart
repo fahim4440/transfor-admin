@@ -30,6 +30,7 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
   int currentPage = 0;
   bool isGeneratingPdf = false;
   bool isGeneratingExcel = false;
+  final _tableKey = GlobalKey<PayoutRequestsTableState>();
 
   Future<void> _printPdf(List<PayoutRequest> payoutRequests, String categoryLabel) async {
     setState(() => isGeneratingPdf = true);
@@ -184,7 +185,7 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
                       onPressed: isGeneratingPdf || pagedPayoutRequests.isEmpty
                           ? null
                           : () => _printPdf(
-                              pagedPayoutRequests,
+                              _tableKey.currentState?.visibleForExport() ?? pagedPayoutRequests,
                               state.userType == 'User' ? 'Customer' : state.userType,
                             ),
                       icon: isGeneratingPdf
@@ -199,7 +200,7 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
                       tooltip: 'Export to Excel',
                       onPressed: isGeneratingExcel || pagedPayoutRequests.isEmpty
                           ? null
-                          : () => _exportExcel(pagedPayoutRequests),
+                          : () => _exportExcel(_tableKey.currentState?.visibleForExport() ?? pagedPayoutRequests),
                       icon: isGeneratingExcel
                           ? const SizedBox(
                               width: 20,
@@ -244,6 +245,7 @@ class _PayoutRequestScreenState extends State<PayoutRequestScreen> {
                     ? const Center(child: Text('No payout requests found'))
                     : Expanded(
                       child: PayoutRequestsTable(
+                        key: _tableKey,
                         payoutRequests: pagedPayoutRequests, userType: state.userType,
                       ),
                     ),

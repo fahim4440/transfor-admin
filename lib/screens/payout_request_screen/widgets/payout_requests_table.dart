@@ -15,10 +15,14 @@ class PayoutRequestsTable extends StatefulWidget {
   const PayoutRequestsTable({super.key, required this.payoutRequests, required this.userType});
 
   @override
-  State<PayoutRequestsTable> createState() => _PayoutRequestsTableState();
+  State<PayoutRequestsTable> createState() => PayoutRequestsTableState();
 }
 
-class _PayoutRequestsTableState extends State<PayoutRequestsTable> {
+class PayoutRequestsTableState extends State<PayoutRequestsTable> {
+  /// Requests currently visible in the grid, honoring any column filter/sort
+  /// the user applied via the grid's own header UI - what export/print should use.
+  List<PayoutRequest> visibleForExport() => _dataSource.visibleForExport();
+
   late _PayoutRequestsDataSource _dataSource;
 
   @override
@@ -111,6 +115,10 @@ class _PayoutRequestsDataSource extends DataGridSource {
     final id = row.getCells().firstWhere((cell) => cell.columnName == 'id').value as String;
     return _payoutRequests.firstWhere((request) => request.id == id);
   }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source [PayoutRequest]s.
+  List<PayoutRequest> visibleForExport() => effectiveRows.map(_requestForRow).toList();
 
   @override
   List<DataGridRow> get rows => _rows;

@@ -20,10 +20,14 @@ class UsersTable extends StatefulWidget {
   });
 
   @override
-  State<UsersTable> createState() => _UsersTableState();
+  State<UsersTable> createState() => UsersTableState();
 }
 
-class _UsersTableState extends State<UsersTable> {
+class UsersTableState extends State<UsersTable> {
+  /// Users currently visible in the grid, honoring any column filter/sort the
+  /// user applied via the grid's own header UI - what "Export to Excel" should use.
+  List<UserProfile> visibleForExport() => _dataSource.visibleForExport();
+
   late _UsersDataSource _dataSource;
 
   @override
@@ -182,6 +186,10 @@ class _UsersDataSource extends DataGridSource {
     final id = row.getCells().firstWhere((cell) => cell.columnName == 'id').value as String;
     return _users.firstWhere((user) => user.id == id);
   }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source [UserProfile]s.
+  List<UserProfile> visibleForExport() => effectiveRows.map(_userForRow).toList();
 
   @override
   List<DataGridRow> get rows => _rows;

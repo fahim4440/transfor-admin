@@ -51,6 +51,12 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   bool isGeneratingCompletedExcel = false;
   bool isGeneratingCancelledExcel = false;
   bool isGeneratingWalletExcel = false;
+  // Kept as stable fields (not rebuilt fresh each build) so each grid's own column
+  // filter/sort survives unrelated rebuilds - export must read effectiveRows off
+  // these same instances, not the raw lists.
+  _WalletTransactionsDataSource? _walletDataSource;
+  _CustomerOrdersDataSource? _completedOrdersDataSource;
+  _CustomerOrdersDataSource? _cancelledOrdersDataSource;
 
   DateTime? orderFilterFrom;
   DateTime? orderFilterTo;
@@ -702,7 +708,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   child: SfDataGridTheme(
                     data: appDataGridTheme,
                     child: SfDataGrid(
-                      source: _WalletTransactionsDataSource(transactions: transactions!),
+                      source: (_walletDataSource ??= _WalletTransactionsDataSource(transactions: transactions!))
+                        ..update(transactions!),
                       columns: [
                         GridColumn(columnName: 'type', label: dataGridHeaderText('Type'), width: 110),
                         GridColumn(columnName: 'amount', label: dataGridHeaderText('Amount'), width: 120),
@@ -815,8 +822,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       }
     });
     try {
+      final dataSource = isCompleted ? _completedOrdersDataSource : _cancelledOrdersDataSource;
       final bytes = await generateOrderHistoryPdf(
-        orders: orders,
+        orders: dataSource?.visibleForExport() ?? orders,
         userName: customerInfo.name,
         mobile: customerInfo.mobile,
         userTypeLabel: customerInfo.userTypeLabel,
@@ -858,7 +866,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       }
     });
     try {
-      final bytes = await generateCustomerOrdersExcel(orders: orders, sheetName: sectionLabel);
+      final dataSource = isCompleted ? _completedOrdersDataSource : _cancelledOrdersDataSource;
+      final bytes = await generateCustomerOrdersExcel(orders: dataSource?.visibleForExport() ?? orders, sheetName: sectionLabel);
       final fileName = '${sectionLabel.toLowerCase().replaceAll(' ', '_')}_${widget.id}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await openExcel(bytes, fileName);
     } catch (e) {
@@ -883,7 +892,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   Future<void> _exportWalletTransactionsExcel() async {
     setState(() => isGeneratingWalletExcel = true);
     try {
-      final bytes = await generateWalletTransactionsExcel(transactions: transactions ?? []);
+      final bytes = await generateWalletTransactionsExcel(
+        transactions: _walletDataSource?.visibleForExport() ?? transactions ?? [],
+      );
       final fileName = 'wallet_transactions_${widget.id}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await openExcel(bytes, fileName);
     } catch (e) {
@@ -928,6 +939,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
               color: AppColors.green,
               count: completedCount,
               orders: completed,
+              isCompleted: true,
               isGeneratingPdf: isGeneratingCompletedPdf,
               onPrintPdf: () => _printOrderHistoryPdf(
                 orders: completed,
@@ -947,6 +959,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
               color: AppColors.error,
               count: cancelledCount,
               orders: cancelled,
+              isCompleted: false,
               isGeneratingPdf: isGeneratingCancelledPdf,
               onPrintPdf: () => _printOrderHistoryPdf(
                 orders: cancelled,
@@ -1040,6 +1053,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     required Color color,
     required int count,
     required List<CustomerOrder> orders,
+    required bool isCompleted,
     required bool isGeneratingPdf,
     required VoidCallback onPrintPdf,
     required bool isGeneratingExcel,
@@ -1099,7 +1113,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
             child: SfDataGridTheme(
               data: appDataGridTheme,
               child: SfDataGrid(
-                source: _CustomerOrdersDataSource(orders: orders),
+                source: (isCompleted
+                    ? (_completedOrdersDataSource ??= _CustomerOrdersDataSource(orders: orders))
+                    : (_cancelledOrdersDataSource ??= _CustomerOrdersDataSource(orders: orders)))
+                  ..update(orders),
                 columns: [
                   GridColumn(columnName: 'orderNumber', label: dataGridHeaderText('Order #'), width: 130),
                   GridColumn(columnName: 'amount', label: dataGridHeaderText('Amount'), width: 110),
@@ -1149,8 +1166,19 @@ Widget _textCell(String text) {
 
 class _WalletTransactionsDataSource extends DataGridSource {
   _WalletTransactionsDataSource({required List<WalletTransaction> transactions}) {
-    _rows = transactions.map((tx) {
+    _transactions = transactions;
+    _rows = _rowsFor(_transactions);
+  }
+
+  late List<WalletTransaction> _transactions;
+  late List<DataGridRow> _rows;
+
+  List<DataGridRow> _rowsFor(List<WalletTransaction> transactions) {
+    return transactions.map((tx) {
       return DataGridRow(cells: [
+        // Not a declared GridColumn - carried only so rows can be mapped back to
+        // their source WalletTransaction; buildRow skips rendering it.
+        DataGridCell<String>(columnName: 'rowId', value: tx.id.toString()),
         DataGridCell<String>(columnName: 'type', value: tx.type),
         DataGridCell<String>(columnName: 'amount', value: tx.amount.toStringAsFixed(2)),
         DataGridCell<String>(columnName: 'description', value: tx.description),
@@ -1160,7 +1188,22 @@ class _WalletTransactionsDataSource extends DataGridSource {
     }).toList();
   }
 
-  late List<DataGridRow> _rows;
+  /// Refreshes the underlying rows in place without replacing this instance -
+  /// replacing it would wipe the grid's own column filter/sort state.
+  void update(List<WalletTransaction> transactions) {
+    _transactions = transactions;
+    _rows = _rowsFor(_transactions);
+    notifyListeners();
+  }
+
+  WalletTransaction _txForRow(DataGridRow row) {
+    final id = int.parse(row.getCells().firstWhere((cell) => cell.columnName == 'rowId').value as String);
+    return _transactions.firstWhere((tx) => tx.id == id);
+  }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source [WalletTransaction]s.
+  List<WalletTransaction> visibleForExport() => effectiveRows.map(_txForRow).toList();
 
   @override
   List<DataGridRow> get rows => _rows;
@@ -1168,7 +1211,7 @@ class _WalletTransactionsDataSource extends DataGridSource {
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
     return DataGridRowAdapter(
-      cells: row.getCells().map<Widget>((cell) {
+      cells: row.getCells().where((cell) => cell.columnName != 'rowId').map<Widget>((cell) {
         if (cell.columnName == 'amount' || cell.columnName == 'balance') {
           return _currencyCell(cell.value.toString());
         }
@@ -1180,7 +1223,15 @@ class _WalletTransactionsDataSource extends DataGridSource {
 
 class _CustomerOrdersDataSource extends DataGridSource {
   _CustomerOrdersDataSource({required List<CustomerOrder> orders}) {
-    _rows = orders.map((order) {
+    _orders = orders;
+    _rows = _rowsFor(_orders);
+  }
+
+  late List<CustomerOrder> _orders;
+  late List<DataGridRow> _rows;
+
+  List<DataGridRow> _rowsFor(List<CustomerOrder> orders) {
+    return orders.map((order) {
       return DataGridRow(cells: [
         DataGridCell<String>(columnName: 'orderNumber', value: order.orderNumber),
         DataGridCell<String>(columnName: 'amount', value: order.amount.toStringAsFixed(2)),
@@ -1192,7 +1243,22 @@ class _CustomerOrdersDataSource extends DataGridSource {
     }).toList();
   }
 
-  late List<DataGridRow> _rows;
+  /// Refreshes the underlying rows in place without replacing this instance -
+  /// replacing it would wipe the grid's own column filter/sort state.
+  void update(List<CustomerOrder> orders) {
+    _orders = orders;
+    _rows = _rowsFor(_orders);
+    notifyListeners();
+  }
+
+  CustomerOrder _orderForRow(DataGridRow row) {
+    final orderNumber = row.getCells().firstWhere((cell) => cell.columnName == 'orderNumber').value as String;
+    return _orders.firstWhere((order) => order.orderNumber == orderNumber);
+  }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source [CustomerOrder]s.
+  List<CustomerOrder> visibleForExport() => effectiveRows.map(_orderForRow).toList();
 
   @override
   List<DataGridRow> get rows => _rows;

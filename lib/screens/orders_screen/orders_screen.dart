@@ -102,6 +102,7 @@ class _OrdersListViewState extends State<_OrdersListView> {
   int currentPage = 0;
   bool isGeneratingPdf = false;
   bool isGeneratingExcel = false;
+  final _tableKey = GlobalKey<OrdersTableState>();
 
   Future<void> _printOrdersPdf(List<Order> orders) async {
     setState(() => isGeneratingPdf = true);
@@ -224,7 +225,9 @@ class _OrdersListViewState extends State<_OrdersListView> {
                       children: [
                         IconButton(
                           tooltip: 'Print PDF',
-                          onPressed: isGeneratingPdf || pagedOrders.isEmpty ? null : () => _printOrdersPdf(pagedOrders),
+                          onPressed: isGeneratingPdf || pagedOrders.isEmpty
+                              ? null
+                              : () => _printOrdersPdf(_tableKey.currentState?.visibleForExport() ?? pagedOrders),
                           icon: isGeneratingPdf
                               ? const SizedBox(
                                   width: 20,
@@ -235,7 +238,9 @@ class _OrdersListViewState extends State<_OrdersListView> {
                         ),
                         IconButton(
                           tooltip: 'Export to Excel',
-                          onPressed: isGeneratingExcel || pagedOrders.isEmpty ? null : () => _exportOrdersExcel(pagedOrders),
+                          onPressed: isGeneratingExcel || pagedOrders.isEmpty
+                              ? null
+                              : () => _exportOrdersExcel(_tableKey.currentState?.visibleForExport() ?? pagedOrders),
                           icon: isGeneratingExcel
                               ? const SizedBox(
                                   width: 20,
@@ -289,7 +294,7 @@ class _OrdersListViewState extends State<_OrdersListView> {
                 Expanded(
                   child: pagedOrders.isEmpty
                       ? const Center(child: Text('No orders found'))
-                      : OrdersTable(orders: pagedOrders),
+                      : OrdersTable(key: _tableKey, orders: pagedOrders),
                 ),
                 if (totalPages > 1)
                   Padding(

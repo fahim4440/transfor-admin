@@ -42,11 +42,15 @@ class _PayoutRequestDetailDialogState extends State<PayoutRequestDetailDialog> {
   bool isLoading = true;
   bool isGeneratingExcel = false;
   List<PayoutRequestItem> items = [];
+  // Built once items load and kept stable so the grid's own column filter/sort
+  // survives rebuilds (e.g. the isGeneratingExcel spinner toggle) - export must
+  // read effectiveRows off this same instance, not the raw `items` list.
+  _PayoutItemsDataSource? _dataSource;
 
   Future<void> _exportExcel() async {
     setState(() => isGeneratingExcel = true);
     try {
-      final bytes = await generatePayoutRequestItemsExcel(items: items);
+      final bytes = await generatePayoutRequestItemsExcel(items: _dataSource?.visibleForExport() ?? items);
       final fileName = 'payout_items_${widget.payoutRequest.id}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await openExcel(bytes, fileName);
     } catch (e) {
@@ -188,7 +192,7 @@ class _PayoutRequestDetailDialogState extends State<PayoutRequestDetailDialog> {
                           child: SfDataGridTheme(
                             data: appDataGridTheme,
                             child: SfDataGrid(
-                              source: _PayoutItemsDataSource(items: items, onView: _viewOrder),
+                              source: _dataSource ??= _PayoutItemsDataSource(items: items, onView: _viewOrder),
                               columns: [
                                 GridColumn(columnName: 'orderNumber', label: dataGridHeaderText('Order #'), width: 130),
                                 GridColumn(columnName: 'amount', label: dataGridHeaderText('Amount'), width: 120),
@@ -261,6 +265,10 @@ class _PayoutItemsDataSource extends DataGridSource {
     final orderNumber = row.getCells().firstWhere((cell) => cell.columnName == 'orderNumber').value as String;
     return _items.firstWhere((item) => item.orderNumber == orderNumber);
   }
+
+  /// Rows left after the grid's own column filter/sort is applied, mapped
+  /// back to their source [PayoutRequestItem]s.
+  List<PayoutRequestItem> visibleForExport() => effectiveRows.map(_itemForRow).toList();
 
   @override
   List<DataGridRow> get rows => _rows;
