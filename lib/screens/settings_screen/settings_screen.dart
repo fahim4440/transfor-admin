@@ -5,6 +5,7 @@ import 'package:transfor_admin_dashboard/blocs/setting/setting_bloc.dart';
 import 'package:transfor_admin_dashboard/global_widgets/textField.dart';
 import 'package:transfor_admin_dashboard/models/settings.dart';
 import 'package:transfor_admin_dashboard/screens/settings_screen/widgets/save_button.dart';
+import 'package:transfor_admin_dashboard/screens/settings_screen/widgets/app_versions_section.dart';
 
 import '../../utilities/app_strings.dart';
 import '../../utilities/dimensions.dart';
@@ -50,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       },
       builder: (context, state) {
         if (state is SettingLoaded) {
-          return Padding(
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(AppDimensions.padding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,6 +84,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                   ),
                 ),
+                const SizedBox(height: 32),
+                const Divider(),
+                const SizedBox(height: 16),
+                const AppVersionsSection(),
               ],
             ),
           );

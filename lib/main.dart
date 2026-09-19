@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,6 +16,9 @@ import 'package:transfor_admin_dashboard/blocs/user_info/user_info_bloc.dart';
 import 'package:transfor_admin_dashboard/blocs/users/users_bloc.dart';
 
 import 'blocs/auth/auth_bloc.dart';
+import 'models/app_version.dart';
+import 'screens/force_update_screen.dart';
+import 'services/app_update_services.dart';
 import 'services/localizations.dart';
 import 'services/router.dart';
 import 'utilities/themes.dart';
@@ -26,7 +30,67 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final savedLocaleCode = prefs.getString('locale') ?? 'en';
   Locale locale = Locale(savedLocaleCode);
-  runApp(AdminApp(initialLocale: locale,));
+  runApp(AppUpdateGate(initialLocale: locale));
+}
+
+/// Blocks the whole app behind [ForceUpdateScreen] when the running build is
+/// below the server-mandated minimum version. The check fails open — a
+/// network error never blocks the app, only an explicit server response does.
+class AppUpdateGate extends StatefulWidget {
+  final Locale initialLocale;
+  const AppUpdateGate({super.key, required this.initialLocale});
+
+  @override
+  State<AppUpdateGate> createState() => _AppUpdateGateState();
+}
+
+class _AppUpdateGateState extends State<AppUpdateGate> {
+  final AppUpdateServices _appUpdateServices = AppUpdateServices();
+  bool _loading = true;
+  AppVersion? _blockingVersionInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkVersion();
+  }
+
+  Future<void> _checkVersion() async {
+    setState(() => _loading = true);
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      final versionInfo = await _appUpdateServices.checkAppVersion(AppUpdateServices.adminAppKey);
+      if (versionInfo != null) {
+        final current = await _appUpdateServices.currentVersion();
+        final blocked = versionInfo.forceUpdate ||
+            AppUpdateServices.isBelowMinVersion(current, versionInfo.minVersion);
+        _blockingVersionInfo = blocked ? versionInfo : null;
+      } else {
+        _blockingVersionInfo = null;
+      }
+    }
+
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
+    if (_blockingVersionInfo != null) {
+      return ForceUpdateScreen(
+        versionInfo: _blockingVersionInfo!,
+        onRetry: _checkVersion,
+      );
+    }
+
+    return AdminApp(initialLocale: widget.initialLocale);
+  }
 }
 
 class AdminApp extends StatelessWidget {

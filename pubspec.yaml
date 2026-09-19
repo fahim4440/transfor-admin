@@ -52,6 +52,7 @@ dependencies:
   syncfusion_flutter_core: ^34.2.4
   syncfusion_flutter_datagrid: ^34.2.4
   excel: ^4.0.6
+  package_info_plus: ^8.1.2
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +64,17 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  msix: ^3.16.7
+
+msix_config:
+  display_name: TransFor-Admin
+  publisher_display_name: AbdulMajeed
+  identity_name: AbdulMajeed.TransFor-Admin
+  publisher: CN=14D73890-85B0-4F1A-B953-F497F6EE6E5D
+  msix_version: 1.0.0.0
+  logo_path: assets/logos/icon.png
+  capabilities: internetClient
+  store: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
