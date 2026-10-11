@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transfor_admin_dashboard/screens/dashboard_screen/dashboard_screen.dart';
@@ -21,15 +22,18 @@ final appRouter = GoRouter(
   initialLocation: '/login',
   redirect: (BuildContext context, GoRouterState state) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
-    bool? isLoggedIn = preferences.getBool('isLoggedIn');
+    final token = await const FlutterSecureStorage().read(
+      key: 'admin_auth_token',
+    );
+    final isLoggedIn =
+        (preferences.getBool('isLoggedIn') ?? false) &&
+        (token?.isNotEmpty ?? false);
 
     bool goingToLogin = false;
 
     if (state.fullPath == '/login') {
       goingToLogin = true;
     }
-
-    isLoggedIn ??= false;
 
     if (!isLoggedIn && !goingToLogin) {
       // Redirect all unauthenticated users to login

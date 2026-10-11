@@ -10,6 +10,7 @@ import 'package:transfor_admin_dashboard/services/excel/dashboard_recent_orders_
 import 'package:transfor_admin_dashboard/services/pdf/pdf_opener.dart';
 import 'package:transfor_admin_dashboard/utilities/dimensions.dart';
 import 'package:transfor_admin_dashboard/utilities/colors.dart';
+import 'package:transfor_admin_dashboard/screens/dashboard_screen/widgets/financial_rankings_section.dart';
 
 import '../../utilities/app_strings.dart';
 
@@ -74,8 +75,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _OrderStatsBreakdown(orderStats: state.orderStats!),
                 const SizedBox(height: 32),
 
+                const FinancialRankingsSection(),
+                const SizedBox(height: 32),
+
                 // Recent Orders Table (Full Width)
-                if (state.recentOrders != null && state.recentOrders!.isNotEmpty)
+                if (state.recentOrders != null &&
+                    state.recentOrders!.isNotEmpty)
                   _RecentOrdersTable(orders: state.recentOrders!),
               ],
             ),
@@ -106,7 +111,12 @@ class _ElegantStatCardsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final crossAxisCount = screenWidth < 600 ? 1 : screenWidth < 1200 ? 2 : 4;
+    final crossAxisCount =
+        screenWidth < 600
+            ? 1
+            : screenWidth < 1200
+            ? 2
+            : 4;
 
     return GridView.count(
       shrinkWrap: true,
@@ -118,25 +128,37 @@ class _ElegantStatCardsGrid extends StatelessWidget {
       children: [
         _ElegantStatCard(
           label: 'Total Users',
-          value: dashboardSummary != null ? dashboardSummary.totalUsers.toString() : '0',
+          value:
+              dashboardSummary != null
+                  ? dashboardSummary.totalUsers.toString()
+                  : '0',
           growth: dashboardGrowth?.usersGrowth ?? 0,
           icon: Icons.person,
         ),
         _ElegantStatCard(
           label: 'Active Orders',
-          value: dashboardSummary != null ? dashboardSummary.activeOrders.toString() : '0',
+          value:
+              dashboardSummary != null
+                  ? dashboardSummary.activeOrders.toString()
+                  : '0',
           growth: dashboardGrowth?.activeOrdersGrowth ?? 0,
           icon: Icons.shopping_bag,
         ),
         _ElegantStatCard(
           label: 'Total Revenue',
-          value: revenueStats != null ? '⃁ ${(revenueStats.totalRevenue / 1000).toStringAsFixed(1)}K' : '⃁ 0',
+          value:
+              revenueStats != null
+                  ? '⃁ ${(revenueStats.totalRevenue / 1000).toStringAsFixed(1)}K'
+                  : '⃁ 0',
           growth: dashboardGrowth?.revenueGrowth ?? 0,
           icon: Icons.trending_up,
         ),
         _ElegantStatCard(
           label: 'All Orders',
-          value: dashboardSummary != null ? dashboardSummary.allOrders.toString() : '0',
+          value:
+              dashboardSummary != null
+                  ? dashboardSummary.allOrders.toString()
+                  : '0',
           growth: dashboardGrowth?.allOrdersGrowth ?? 0,
           icon: Icons.list_alt,
         ),
@@ -203,7 +225,10 @@ class _ElegantStatCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFFB0B0C0) : const Color(0xFF6B7280),
+                          color:
+                              isDark
+                                  ? const Color(0xFFB0B0C0)
+                                  : const Color(0xFF6B7280),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -230,14 +255,20 @@ class _ElegantStatCard extends StatelessWidget {
                         Icon(
                           growth >= 0 ? Icons.trending_up : Icons.trending_down,
                           size: 18,
-                          color: growth >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                          color:
+                              growth >= 0
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           '${growth >= 0 ? '↑' : '↓'} ${growth.abs().toStringAsFixed(1)}% this month',
                           style: TextStyle(
                             fontSize: 12,
-                            color: growth >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                            color:
+                                growth >= 0
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFEF4444),
                           ),
                         ),
                       ],
@@ -280,7 +311,8 @@ class _ChartsGrid extends StatelessWidget {
               color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isDark ? const Color(0xFF2D2D4A) : const Color(0xFFE5E7EB),
+                color:
+                    isDark ? const Color(0xFF2D2D4A) : const Color(0xFFE5E7EB),
               ),
             ),
             padding: const EdgeInsets.all(24),
@@ -290,8 +322,8 @@ class _ChartsGrid extends StatelessWidget {
                 Text(
                   'Revenue Trend',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 if (revenueData != null && revenueData!.isNotEmpty)
@@ -302,9 +334,7 @@ class _ChartsGrid extends StatelessWidget {
                 else
                   SizedBox(
                     height: 300,
-                    child: Center(
-                      child: Text('No data available'),
-                    ),
+                    child: Center(child: Text('No data available')),
                   ),
               ],
             ),
@@ -319,7 +349,10 @@ class _ChartsGrid extends StatelessWidget {
                 color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? const Color(0xFF2D2D4A) : const Color(0xFFE5E7EB),
+                  color:
+                      isDark
+                          ? const Color(0xFF2D2D4A)
+                          : const Color(0xFFE5E7EB),
                 ),
               ),
               padding: const EdgeInsets.all(24),
@@ -329,8 +362,8 @@ class _ChartsGrid extends StatelessWidget {
                   Text(
                     'User Growth',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   SizedBox(
@@ -353,11 +386,15 @@ class _RevenueChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<FlSpot> spots = revenueData
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), (e.value.revenue ?? 0).toDouble()))
-        .toList();
+    final List<FlSpot> spots =
+        revenueData
+            .asMap()
+            .entries
+            .map(
+              (e) =>
+                  FlSpot(e.key.toDouble(), (e.value.revenue ?? 0).toDouble()),
+            )
+            .toList();
 
     return LineChart(
       LineChartData(
@@ -368,8 +405,12 @@ class _RevenueChart extends StatelessWidget {
         ),
         titlesData: FlTitlesData(
           show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
@@ -396,13 +437,17 @@ class _UserGrowthChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<FlSpot> spots = userGrowthData != null
-        ? userGrowthData!
-            .asMap()
-            .entries
-            .map((e) => FlSpot(e.key.toDouble(), (e.value.users ?? 0).toDouble()))
-            .toList()
-        : [];
+    final List<FlSpot> spots =
+        userGrowthData != null
+            ? userGrowthData!
+                .asMap()
+                .entries
+                .map(
+                  (e) =>
+                      FlSpot(e.key.toDouble(), (e.value.users ?? 0).toDouble()),
+                )
+                .toList()
+            : [];
 
     return LineChart(
       LineChartData(
@@ -413,8 +458,12 @@ class _UserGrowthChart extends StatelessWidget {
         ),
         titlesData: FlTitlesData(
           show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
@@ -444,10 +493,22 @@ class _OrderStatsBreakdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final total = orderStats.total;
-    final completedPercent = total > 0 ? (orderStats.completed / total * 100).toStringAsFixed(1) : '0';
-    final cancelledPercent = total > 0 ? (orderStats.cancelled / total * 100).toStringAsFixed(1) : '0';
-    final processingPercent = total > 0 ? (orderStats.processing / total * 100).toStringAsFixed(1) : '0';
-    final driverAssignedPercent = total > 0 ? (orderStats.driverAssigned / total * 100).toStringAsFixed(1) : '0';
+    final completedPercent =
+        total > 0
+            ? (orderStats.completed / total * 100).toStringAsFixed(1)
+            : '0';
+    final cancelledPercent =
+        total > 0
+            ? (orderStats.cancelled / total * 100).toStringAsFixed(1)
+            : '0';
+    final processingPercent =
+        total > 0
+            ? (orderStats.processing / total * 100).toStringAsFixed(1)
+            : '0';
+    final driverAssignedPercent =
+        total > 0
+            ? (orderStats.driverAssigned / total * 100).toStringAsFixed(1)
+            : '0';
 
     return Container(
       decoration: BoxDecoration(
@@ -463,9 +524,9 @@ class _OrderStatsBreakdown extends StatelessWidget {
         children: [
           Text(
             'Order Status Breakdown',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 24),
           Row(
@@ -541,18 +602,12 @@ class _StatBreakdownItem extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           count.toString(),
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF6B7280),
-          ),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
         ),
       ],
     );
@@ -580,9 +635,11 @@ class _RecentOrdersTableState extends State<_RecentOrdersTable> {
     setState(() => isGeneratingExcel = true);
     try {
       final bytes = await generateRecentOrdersExcel(
-        orders: _dataSource?.visibleForExport() ?? widget.orders.take(10).toList(),
+        orders:
+            _dataSource?.visibleForExport() ?? widget.orders.take(10).toList(),
       );
-      final fileName = 'recent_orders_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final fileName =
+          'recent_orders_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await openExcel(bytes, fileName);
     } catch (e) {
       if (mounted) {
@@ -616,20 +673,24 @@ class _RecentOrdersTableState extends State<_RecentOrdersTable> {
             children: [
               Text(
                 'Recent Transactions',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               IconButton(
                 tooltip: 'Export to Excel',
-                onPressed: isGeneratingExcel || widget.orders.isEmpty ? null : _exportExcel,
-                icon: isGeneratingExcel
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.grid_on),
+                onPressed:
+                    isGeneratingExcel || widget.orders.isEmpty
+                        ? null
+                        : _exportExcel,
+                icon:
+                    isGeneratingExcel
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Icon(Icons.grid_on),
               ),
             ],
           ),
@@ -639,14 +700,37 @@ class _RecentOrdersTableState extends State<_RecentOrdersTable> {
             child: SfDataGridTheme(
               data: appDataGridTheme,
               child: SfDataGrid(
-                source: (_dataSource ??= _RecentOrdersDataSource(orders: widget.orders.take(10).toList()))
-                  ..update(widget.orders.take(10).toList()),
+                source:
+                    (_dataSource ??= _RecentOrdersDataSource(
+                        orders: widget.orders.take(10).toList(),
+                      ))
+                      ..update(widget.orders.take(10).toList()),
                 columns: [
-                  GridColumn(columnName: 'orderNumber', label: dataGridHeaderText('Order ID'), width: 130),
-                  GridColumn(columnName: 'customerName', label: dataGridHeaderText('Customer'), width: 180),
-                  GridColumn(columnName: 'amount', label: dataGridHeaderText('Amount'), width: 130),
-                  GridColumn(columnName: 'status', label: dataGridHeaderText('Status'), width: 150),
-                  GridColumn(columnName: 'date', label: dataGridHeaderText('Date'), width: 130),
+                  GridColumn(
+                    columnName: 'orderNumber',
+                    label: dataGridHeaderText('Order ID'),
+                    width: 130,
+                  ),
+                  GridColumn(
+                    columnName: 'customerName',
+                    label: dataGridHeaderText('Customer'),
+                    width: 180,
+                  ),
+                  GridColumn(
+                    columnName: 'amount',
+                    label: dataGridHeaderText('Amount'),
+                    width: 130,
+                  ),
+                  GridColumn(
+                    columnName: 'status',
+                    label: dataGridHeaderText('Status'),
+                    width: 150,
+                  ),
+                  GridColumn(
+                    columnName: 'date',
+                    label: dataGridHeaderText('Date'),
+                    width: 130,
+                  ),
                 ],
                 allowSorting: true,
                 allowFiltering: true,
@@ -676,13 +760,30 @@ class _RecentOrdersDataSource extends DataGridSource {
 
   List<DataGridRow> _rowsFor(List<dynamic> orders) {
     return orders.map((order) {
-      return DataGridRow(cells: [
-        DataGridCell<String>(columnName: 'orderNumber', value: '#${order.orderNumber}'),
-        DataGridCell<String>(columnName: 'customerName', value: order.customerName as String),
-        DataGridCell<String>(columnName: 'amount', value: (order.amount as num).toStringAsFixed(2)),
-        DataGridCell<String>(columnName: 'status', value: order.getStatusLabel() as String),
-        DataGridCell<String>(columnName: 'date', value: (order.date as String).substring(0, 10)),
-      ]);
+      return DataGridRow(
+        cells: [
+          DataGridCell<String>(
+            columnName: 'orderNumber',
+            value: '#${order.orderNumber}',
+          ),
+          DataGridCell<String>(
+            columnName: 'customerName',
+            value: order.customerName as String,
+          ),
+          DataGridCell<String>(
+            columnName: 'amount',
+            value: (order.amount as num).toStringAsFixed(2),
+          ),
+          DataGridCell<String>(
+            columnName: 'status',
+            value: order.getStatusLabel() as String,
+          ),
+          DataGridCell<String>(
+            columnName: 'date',
+            value: (order.date as String).substring(0, 10),
+          ),
+        ],
+      );
     }).toList();
   }
 
@@ -695,8 +796,15 @@ class _RecentOrdersDataSource extends DataGridSource {
   }
 
   dynamic _orderForRow(DataGridRow row) {
-    final orderNumber = row.getCells().firstWhere((cell) => cell.columnName == 'orderNumber').value as String;
-    return _orders.firstWhere((order) => '#${order.orderNumber}' == orderNumber);
+    final orderNumber =
+        row
+                .getCells()
+                .firstWhere((cell) => cell.columnName == 'orderNumber')
+                .value
+            as String;
+    return _orders.firstWhere(
+      (order) => '#${order.orderNumber}' == orderNumber,
+    );
   }
 
   /// Rows left after the grid's own column filter/sort is applied, mapped
@@ -709,34 +817,41 @@ class _RecentOrdersDataSource extends DataGridSource {
   @override
   DataGridRowAdapter buildRow(DataGridRow row) {
     return DataGridRowAdapter(
-      cells: row.getCells().map<Widget>((cell) {
-        switch (cell.columnName) {
-          case 'amount':
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '⃁ ${cell.value}',
-                  style: const TextStyle(color: AppColors.text, fontFamilyFallback: ['SaudiRiyal']),
-                ),
-              ),
-            );
-          case 'status':
-            return Align(
-              alignment: Alignment.centerLeft,
-              child: _StatusBadge(status: cell.value.toString()),
-            );
-          default:
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(cell.value.toString(), style: const TextStyle(color: AppColors.text)),
-              ),
-            );
-        }
-      }).toList(),
+      cells:
+          row.getCells().map<Widget>((cell) {
+            switch (cell.columnName) {
+              case 'amount':
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '⃁ ${cell.value}',
+                      style: const TextStyle(
+                        color: AppColors.text,
+                        fontFamilyFallback: ['SaudiRiyal'],
+                      ),
+                    ),
+                  ),
+                );
+              case 'status':
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: _StatusBadge(status: cell.value.toString()),
+                );
+              default:
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      cell.value.toString(),
+                      style: const TextStyle(color: AppColors.text),
+                    ),
+                  ),
+                );
+            }
+          }).toList(),
     );
   }
 }

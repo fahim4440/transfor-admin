@@ -70,8 +70,9 @@ class SidebarWidget extends StatelessWidget {
                                 ),
                                 VerticalDivider(width: 10),
                                 TextButton(
-                                  onPressed: () {
-                                    AuthService().logout();
+                                  onPressed: () async {
+                                    await AuthService().logout();
+                                    if (!context.mounted) return;
                                     context.go('/login');
                                   },
                                   child: Row(
@@ -164,7 +165,7 @@ class SidebarWidget extends StatelessWidget {
               route: () => context.go('/transportTiles'),
             ),
             SizedBox(height: AppDimensions.lighterSpacing),
-            LanguageToggle(isAppbar: false,),
+            LanguageToggle(isAppbar: false),
           ],
         ),
       ),

@@ -3,25 +3,29 @@ class AdminProfileResponse {
   String? message;
   List<AdminProfile>? adminProfiles;
 
-  AdminProfileResponse({
-    this.error,
-    this.message,
-    this.adminProfiles,
-  });
+  AdminProfileResponse({this.error, this.message, this.adminProfiles});
 
-  factory AdminProfileResponse.fromJson(Map<String, dynamic> json) => AdminProfileResponse(
-    error: json["error"],
-    message: json["message"],
-    adminProfiles: json["AdminProfile"] == null ? [] : List<AdminProfile>.from(json["AdminProfile"]!.map((x) => AdminProfile.fromJson(x))),
-  );
+  factory AdminProfileResponse.fromJson(Map<String, dynamic> json) =>
+      AdminProfileResponse(
+        error: json["error"],
+        message: json["message"],
+        adminProfiles:
+            json["AdminProfile"] == null
+                ? []
+                : List<AdminProfile>.from(
+                  json["AdminProfile"]!.map((x) => AdminProfile.fromJson(x)),
+                ),
+      );
 
   Map<String, dynamic> toJson() => {
     "error": error,
     "message": message,
-    "AdminProfile": adminProfiles == null ? [] : List<dynamic>.from(adminProfiles!.map((x) => x.toJson())),
+    "AdminProfile":
+        adminProfiles == null
+            ? []
+            : List<dynamic>.from(adminProfiles!.map((x) => x.toJson())),
   };
 }
-
 
 class AdminProfile {
   final String id;
@@ -43,12 +47,12 @@ class AdminProfile {
   // Factory constructor to create a User from JSON
   factory AdminProfile.fromJson(Map<String, dynamic> json) {
     return AdminProfile(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String,
-      superadmin: json['superadmin'] as String,
-      status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      superadmin: json['superadmin']?.toString() ?? '0',
+      status: json['status']?.toString() ?? '0',
+      createdAt: DateTime.parse(json['created_at'].toString()),
     );
   }
 
